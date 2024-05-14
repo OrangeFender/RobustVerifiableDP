@@ -6,6 +6,7 @@ use crate::util;
 pub struct Prover {
     bit_vector: Vec<Scalar>, 
     s_blinding: Vec<Scalar>,
+    coms_v_k: Vec<G1Projective>,
 }
 
 impl Prover {
@@ -17,7 +18,11 @@ impl Prover {
         
         let s_blinding = (0..length).map(|_| util::random_scalar(&mut rng)).collect();
         
-        
+        for i in 0..length {
+            let scalars = [bit_vector[i], s_blinding[i]];
+            coms_v_k.push(G1Projective::multi_exp(pp.get_points(), scalars.as_slice()));
+        }
+
         Self {
             bit_vector,
             s_blinding,
