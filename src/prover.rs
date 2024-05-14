@@ -32,4 +32,8 @@ impl Prover {
         }
 
     }
+    
+    pub fn get_coms_v_k(&self) -> Vec<G1Projective> {
+        self.coms_v_k.clone()
+    }
 }

@@ -18,10 +18,15 @@ impl CommitBase{
 
 pub trait Commit{
     fn commit(&self, message:Scalar, blinding:Scalar) -> G1Projective;
+    fn vrfy(&self, message:Scalar, blinding:Scalar, com:G1Projective) -> bool;
 }
 
 impl Commit for CommitBase{
     fn commit(&self, message:Scalar, blinding:Scalar) -> G1Projective {
         G1Projective::multi_exp(&self.bases, &[message, blinding])
+    }
+    fn vrfy(&self, message:Scalar, blinding:Scalar, com:G1Projective) -> bool {
+        let com_prime = G1Projective::multi_exp(&self.bases, &[message, blinding]);
+        com == com_prime
     }
 }
