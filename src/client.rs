@@ -11,7 +11,7 @@ pub struct Client{
     f_poly: Vec<Scalar>,//polynomial coefficients
     f_eval: Vec<Scalar>,//
     r_eval: Vec<Scalar>,//
-    coms_f_i: Vec<G1Projective>,//
+    coms_f_x: Vec<G1Projective>,//
 }
 
 impl Client{
@@ -41,10 +41,10 @@ impl Client{
         let mut r_evals = fft(&r_poly, pp.get_dom());
         r_evals.truncate(pp.get_prover_num());
 
-        let mut coms_f_i = Vec::new();
+        let mut coms_f_x = Vec::new();
 
         for i in 0..pp.get_prover_num() {
-            coms_f_i.push(pp.get_commit_base().commit(f_evals[i], r_evals[i]));
+            coms_f_x.push(pp.get_commit_base().commit(f_evals[i], r_evals[i]));
         }
 
         Self {
@@ -54,8 +54,16 @@ impl Client{
             f_poly,
             f_eval: f_evals,
             r_eval: r_evals,
-            coms_f_i,
+            coms_f_x,
         }
+    }
+
+    pub fn get_coms_f_x(&self) -> Vec<G1Projective> {
+        self.coms_f_x.clone()
+    }
+
+    pub fn send_ith_share(&self, i: usize) -> (Scalar, Scalar) {
+        (self.f_eval[i], self.r_eval[i])
     }
 
 }
