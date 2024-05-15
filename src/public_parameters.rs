@@ -6,14 +6,16 @@ use crate::commitment::CommitBase;
 pub struct PublicParameters {
     n_b: usize,
     prover_num: usize,
+    threshold: usize,
     pub commit_base: CommitBase,
 }
 
 impl PublicParameters {
-    pub fn new(n_b: usize,prover_num: usize, seed: &[u8]) -> Self {
+    pub fn new(n_b: usize,prover_num: usize, threshold: usize , seed: &[u8]) -> Self {
         Self {
             n_b,
             prover_num,
+            threshold,
             commit_base: CommitBase::new(seed),
         }
     }
@@ -26,4 +28,7 @@ impl PublicParameters {
         self.prover_num
     }
     
+    pub fn get_threshold(&self) -> usize {
+        self.threshold
+    }
 }
