@@ -15,9 +15,10 @@ impl Prover {
         // Generate a random bit vector of length `n_b'`
         let length = pp.get_n_b();
         let mut rng = rand::thread_rng();
-        let bit_vector: Vec<Scalar> = (0..length).map(|_| util::random_bit_scalar(&mut rng)).collect();
-        
-        let s_blinding: Vec<Scalar> = (0..length).map(|_| util::random_scalar(&mut rng)).collect();
+        //let bit_vector: Vec<Scalar> = (0..length).map(|_| util::random_bit_scalar(&mut rng)).collect();
+        let bit_vector = util::random_scalars(length, &mut rng);
+        //let s_blinding: Vec<Scalar> = (0..length).map(|_| util::random_scalar(&mut rng)).collect();
+        let s_blinding = util::random_scalars(length, &mut rng);
         
         let mut coms_v_k = Vec::new();
         for i in 0..length {

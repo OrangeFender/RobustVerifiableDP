@@ -17,17 +17,21 @@ pub struct Client{
 impl Client{
     pub fn new(x_int: usize,pp:PublicParameters) -> Self {
         let x_scalar = Scalar::from(x_int as u64);
-        let mut r_poly = Vec::new();
-        let mut f_poly = Vec::new();
+
         
         let t = pp.get_threshold();
         let mut rng = rand::thread_rng();
 
-        for _ in 0..t {
-            //random generation of r_blinding and f_poly
-            r_poly.push(util::random_scalar(&mut rng));
-            f_poly.push(util::random_scalar(&mut rng));
-        }
+        // let mut r_poly = Vec::new();
+        // let mut f_poly = Vec::new();
+        // for _ in 0..t {
+        //     //random generation of r_blinding and f_poly
+        //     r_poly.push(util::random_scalar(&mut rng));
+        //     f_poly.push(util::random_scalar(&mut rng));
+        // }
+
+        let r_poly = util::random_scalars(t, &mut rng);
+        let mut f_poly = util::random_scalars(t, &mut rng);
 
         f_poly[0] = x_scalar;
 

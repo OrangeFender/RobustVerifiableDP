@@ -6,5 +6,8 @@ pub mod public_parameters;
 pub mod commitment;
 pub mod fft;
 pub mod evaluation_domain;
+pub mod lower_deg;
+pub mod lagrange;
+pub mod polynomials;
 
 pub const DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION : &[u8; 41] = b"DSTofRobustDP'sPublicParametersGeneration";

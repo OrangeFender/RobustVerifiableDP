@@ -279,7 +279,7 @@ mod test {
     use crate::evaluation_domain::BatchEvaluationDomain;
     use crate::fft::fft_assign;
     use crate::lagrange::{all_n_lagrange_coefficients, FFT_THRESH, lagrange_coefficients, lagrange_coefficients_at_zero};
-    use crate::{random_scalar, random_scalars};
+    use crate::{util::random_scalar, util::random_scalars};
     use crate::polynomials::poly_eval;
 
     #[test]

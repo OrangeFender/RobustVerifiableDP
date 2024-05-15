@@ -3,7 +3,7 @@ use ff::Field;
 use std::ops::{AddAssign, Mul, MulAssign, SubAssign};
 use more_asserts::debug_assert_le;
 use crate::evaluation_domain::{BatchEvaluationDomain, EvaluationDomain};
-use crate::{fft, is_power_of_two};
+use crate::{fft, util::is_power_of_two};
 
 /// Returns the size of the evaluation domain needed to multiply these two polynomials via FFT.
 pub fn get_evaluation_dom_size_for_multiplication(f: &Vec<Scalar>, g: &Vec<Scalar>) -> usize {
