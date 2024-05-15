@@ -1,7 +1,8 @@
 use blstrs::{G1Projective, Scalar};
-use rand_core::le;
+use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
+use crate::fft::fft;
 
 pub struct Client{
     x_int: usize,
@@ -10,7 +11,7 @@ pub struct Client{
     f_poly: Vec<Scalar>,//polynomial coefficients
     f_eval: Vec<Scalar>,//
     r_eval: Vec<Scalar>,//
-    coms_f_i: Ves<G1Projective>,//
+    coms_f_i: Vec<G1Projective>,//
 }
 
 impl Client{
@@ -30,13 +31,27 @@ impl Client{
 
         f_poly[0] = x_scalar;
 
+        let mut f_evals = fft(&f_poly, pp.get_dom());
+        f_evals.truncate(pp.get_prover_num());
+
+        let mut r_evals = fft(&r_poly, pp.get_dom());
+        r_evals.truncate(pp.get_prover_num());
+
+        let mut coms_f_i = Vec::new();
+
+        for i in 0..pp.get_prover_num() {
+            coms_f_i.push(pp.get_commit_base().commit(f_evals[i], r_evals[i]));
+        }
+
         Self {
             x_int,
             x_scalar,
             r_poly,
             f_poly,
+            f_eval: f_evals,
+            r_eval: r_evals,
+            coms_f_i,
         }
     }
 
-    pub fn share()
 }

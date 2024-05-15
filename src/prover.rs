@@ -22,7 +22,7 @@ impl Prover {
         let mut coms_v_k = Vec::new();
         for i in 0..length {
             //let scalars = [bit_vector[i], s_blinding[i]];
-            coms_v_k.push(pp.commit_base.commit(bit_vector[i], s_blinding[i]));
+            coms_v_k.push(pp.get_commit_base().commit(bit_vector[i], s_blinding[i]));
         }
 
         Self {

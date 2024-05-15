@@ -1,5 +1,5 @@
 use crate::commitment::CommitBase;
-
+use crate::evaluation_domain::{BatchEvaluationDomain, EvaluationDomain};
 
 
 
@@ -7,15 +7,22 @@ pub struct PublicParameters {
     n_b: usize,
     prover_num: usize,
     threshold: usize,
-    pub commit_base: CommitBase,
+    batch_dom: BatchEvaluationDomain,
+    dom: EvaluationDomain,
+    commit_base: CommitBase,
+
 }
 
 impl PublicParameters {
     pub fn new(n_b: usize,prover_num: usize, threshold: usize , seed: &[u8]) -> Self {
+        let batch_dom = BatchEvaluationDomain::new(prover_num);
+        let dom = batch_dom.get_subdomain(prover_num);
         Self {
             n_b,
             prover_num,
             threshold,
+            batch_dom,
+            dom,
             commit_base: CommitBase::new(seed),
         }
     }
@@ -30,5 +37,17 @@ impl PublicParameters {
     
     pub fn get_threshold(&self) -> usize {
         self.threshold
+    }
+
+    pub fn get_batch_dom(&self) -> &BatchEvaluationDomain {
+        &self.batch_dom
+    }
+
+    pub fn get_dom(&self) -> &EvaluationDomain {
+        &self.dom
+    }
+
+    pub fn get_commit_base(&self) -> &CommitBase {
+        &self.commit_base
     }
 }
