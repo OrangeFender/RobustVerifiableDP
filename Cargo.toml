@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 #aptos-crypto = { git ="https://github.com/sourav1547/aptos-core.git",  package ="aptos-crypto", features=["cloneable-private-keys", "fuzzing"]}
+aptos-crypto = { git ="https://github.com/sourav1547/aptos-core.git",  package ="aptos-crypto", features=["cloneable-private-keys", "fuzzing"]}
+aptos-bitvec = { git="https://github.com/sourav1547/aptos-core.git", package ="aptos-bitvec"}
+aptos-crypto-derive = { git = "https://github.com/sourav1547/aptos-core.git", package="aptos-crypto-derive"}
 
 blstrs = "0.6.1"
 rand = "0.7.3"
