@@ -54,7 +54,7 @@ impl Prover {
         self.coms_v_k.clone()
     }
 
-    pub fn input_shares_coms(coms_f_x) -> Self {
+    // pub fn input_shares_coms(coms_f_x) -> Self {
 
-    }
+    // }
 }

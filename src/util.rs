@@ -9,6 +9,7 @@ use num_integer::Integer;
 use once_cell::sync::Lazy;
 use sha3::Digest;
 use hex;
+use rand::distributions::{Uniform, Distribution};
 
 use crate::error::CryptographicError;
 
@@ -282,5 +283,24 @@ pub fn random_gt_points<R>(n: usize, rng: &mut R) -> Vec<Gt>
 
     debug_assert_eq!(v.len(), n);
 
+    v
+}
+
+/// Return a random scalar within a small range [0,n) 
+pub fn random_scalar_range<R>(mut rng: &mut R, u: u64) -> Scalar 
+    where R: rand_core::RngCore + rand::Rng + rand_core::CryptoRng + rand::CryptoRng {
+    let die = Uniform::from(0..u);
+    let val = die.sample(&mut rng);
+    Scalar::from(val)
+}
+
+pub fn random_scalars_range<R>(mut rng: &mut R, u: u64, n: usize) -> Vec<Scalar> 
+    where R: rand_core::RngCore + rand::Rng + rand_core::CryptoRng + rand::CryptoRng {
+    
+    let mut v = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        v.push(random_scalar_range(&mut rng, u));
+    }
     v
 }

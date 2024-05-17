@@ -3,7 +3,7 @@
 /// and the multi-signature/aggregated signature itself,
 /// which was aggregated from these validators' partial BLS signatures.
 /// ed25519指的是在Edwards椭圆曲线上的签名方案，这里应该是设计了一个多重签名方案
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, CryptoHasher, BCSCryptoHash)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EdSignature {
     // 用bitmask掩码来表示哪些validator签名了，哪些没签名
     validator_bitmask: BitVec,
@@ -76,12 +76,6 @@ use rand::rngs::StdRng;
 use rand::thread_rng;
 use rand_core::SeedableRng;
 
-use crate::vss::common::random_scalars_range;
-use crate::vss::transcript::TranscriptEd;
-use crate::fft::fft;
-use crate::vss::public_parameters::PublicParameters;
-use crate::vss::keys::InputSecret;
-use crate::pvss::SharingConfiguration;
 
 use crate::prover::Prover;
 use crate::client::Client;
@@ -96,16 +90,16 @@ pub fn generate_ed_sig_keys(n: usize) -> Vec<KeyPair<Ed25519PrivateKey, Ed25519P
 
 // 对于Prover需要签名, 这里需要在其他函数完成两步验证, 验证通过后再进行签名
 // 利用prover的签名密钥签名
-pub fn sign_verified_deal(pv:&Prover, ct:&Client) -> Option<Ed25519Signature> {
+pub fn sign_verified_deal(sig_key:&Ed25519PrivateKey, coms_f_x: &Vec<G1Projective>) -> Option<Ed25519Signature> {
     // Return signature the dealing is valid
-    let msg = bcs::to_bytes(&ct.coms_f_x).unwrap();
-    return Some(pv.sig_key.sign_arbitrary_message(msg.as_slice()));
+    let msg = bcs::to_bytes(&coms_f_x).unwrap();
+    return Some(sig_key.sign_arbitrary_message(msg.as_slice()));
 }
 
 // 对于Client需要验证签名。
 // 利用prover的签名公钥验签
-pub fn verify_sig(ct:&Client, pk: &Ed25519PublicKey, sig: Ed25519Signature) -> bool {
-    let msg = bcs::to_bytes(&ct.coms).unwrap();
+pub fn verify_sig(coms_f_x: &Vec<G1Projective>, pk: &Ed25519PublicKey, sig: Ed25519Signature) -> bool {
+    let msg = bcs::to_bytes(&coms_f_x).unwrap();
     sig.verify_arbitrary_msg(msg.as_slice(), pk).is_ok()
 }
 

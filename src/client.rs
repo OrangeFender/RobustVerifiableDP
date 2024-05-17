@@ -3,6 +3,9 @@ use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
 use crate::fft::fft;
+use crate::sig::aggregate_sig;
+use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
+use crate::transcript::TranscriptEd;            
 
 pub struct Client{
     x_int: usize,
@@ -64,6 +67,25 @@ impl Client{
 
     pub fn send_ith_share(&self, i: usize) -> (Scalar, Scalar) {
         (self.f_eval[i], self.r_eval[i])
+    }
+
+    // This function outputs the Mixed-VSS transcript. 
+    // This function assumes that all signatures are valid
+    pub fn get_transcript(&self, num_prover:usize, signers: &Vec<bool>, sigs: Vec<Ed25519Signature>) -> TranscriptEd {
+        let agg_sig = aggregate_sig(signers.clone(), sigs);
+        let missing_count = num_prover-agg_sig.get_num_voters();
+
+        let mut shares = Vec::with_capacity(missing_count);
+        let mut randomness = Vec::with_capacity(missing_count);
+
+        for (i, &is_set) in signers.iter().enumerate() {
+            if !is_set {
+                shares.push(self.f_poly[i]);
+                randomness.push(self.r_poly[i]);
+            }
+        }
+
+        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig)
     }
 
 }
