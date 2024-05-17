@@ -6,7 +6,7 @@ pub mod public_parameters;
 pub mod commitment;
 pub mod fft;
 pub mod evaluation_domain;
-pub mod lower_deg;
+pub mod low_deg;
 pub mod lagrange;
 pub mod polynomials;
 

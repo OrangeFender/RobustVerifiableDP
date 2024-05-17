@@ -19,7 +19,7 @@ pub struct Prover {
     // ============================================================
     pub(crate) sig_key: Ed25519PrivateKey,
     // ============================================================
-    shares_coms: Vec<Vec<G1Projective>>,
+    shares_coms: Vec<G1Projective>,
 }
 
 impl Prover {
