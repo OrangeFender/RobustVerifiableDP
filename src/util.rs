@@ -132,7 +132,7 @@ pub fn random_bit_scalar<R>(rng: &mut R) -> Scalar
     }
 }
 
-fn biguint_to_scalar(big_uint: &BigUint) -> Scalar {
+pub fn biguint_to_scalar(big_uint: &BigUint) -> Scalar {
     // `blstrs`'s `Scalar::from_bytes_le` needs `SCALAR_NUM_BYTES` bytes. The current
     // implementation of `BigUint::to_bytes_le()` does not always return `SCALAR_NUM_BYTES` bytes
     // when the integer is smaller than 32 bytes. So we have to pad it.

@@ -3,7 +3,7 @@ use group::Group;
 use crate::DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION;
 
 pub struct CommitBase{
-    bases: [G1Projective; 2],
+    pub bases: [G1Projective; 2],
 }
 
 impl CommitBase{
