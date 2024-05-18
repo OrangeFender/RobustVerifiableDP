@@ -6,7 +6,8 @@ use crate::util;
 use crate::fft::fft;
 use crate::sig::aggregate_sig;
 use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
-use crate::transcript::TranscriptEd;            
+use crate::transcript::TranscriptEd;
+use crate::sig::verify_sig;
 
 pub struct Client{
     index: usize,
@@ -47,6 +48,7 @@ impl Client{
 
         let mut r_evals = fft(&r_poly, pp.get_dom());
         r_evals.truncate(pp.get_prover_num());
+        //注意这里的eval都是从x=1开始的
 
         let mut coms_f_x = Vec::new();
 
@@ -76,6 +78,11 @@ impl Client{
 
     pub fn send_ith_share(&self, i: usize) -> (Scalar, Scalar) {
         (self.f_eval[i], self.r_eval[i])
+    }
+
+
+    pub fn vrfy_sig(&self, pk: &Ed25519PublicKey, sig: &Ed25519Signature) -> bool {
+        verify_sig(&self.coms_f_x, pk, sig.clone())
     }
 
     // This function outputs the Mixed-VSS transcript. 

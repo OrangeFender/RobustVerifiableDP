@@ -75,19 +75,30 @@ use crate::util::random_scalars_range;
 
 // Prover 验证transcript
 // 这里将将原来的PolyComReceiver:self替换为了pv_share
-pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pk: &MultiEd25519PublicKey) -> bool {
+pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
+    if t.shares().len() == 0{
+        return true;
+    }
     let num_signed = t.agg_sig().get_num_voters();
     let n = t.coms().len();
     let missing_ct = n-num_signed;
-    
+    let threshold= pp.get_threshold();
     // Checking low-degree of the committed polynomial
-    assert!(low_deg_test(t.coms(), pp.get_threshold(), pp.get_prover_num())); 
+    assert!(low_deg_test(t.coms(), threshold, pp.get_prover_num())); 
     assert!(t.shares().len() == t.randomness().len());
     assert!(t.shares().len() == missing_ct);
 
+    // Aggregate public key
+
+    let multi_pks=t.agg_sig.get_signers_addresses(pks);
+
+    let threshold=threshold.try_into().unwrap();
+
+    let agg_pk = MultiEd25519PublicKey::new(multi_pks, threshold).unwrap();
+
     // Checking correctness of aggregate signature
     let msg = bcs::to_bytes(pv_share).unwrap();
-    assert!(t.agg_sig().verify(msg.as_slice(), &pk));
+    assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
 
     let mut missing_coms = Vec::with_capacity(t.shares().len());
 

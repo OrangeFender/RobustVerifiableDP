@@ -23,7 +23,7 @@ pub struct Prover {
     pub(crate) sig_key: Ed25519PrivateKey,
     pub(crate) vrfy_key: Ed25519PublicKey,
     // ============================================================
-    shares_coms: Vec<G1Projective>,
+    // shares_coms: Vec<G1Projective>,
     share_f_i_k: Vec<Scalar>,//长度是Client的数量
     share_r_i_k: Vec<Scalar>,//长度是Client的数量
     valid_shares: Vec<bool>,//长度是Client的数量
@@ -35,7 +35,13 @@ impl Prover {
         let length = pp.get_n_b();
         let mut rng = rand::thread_rng();
         //let bit_vector: Vec<Scalar> = (0..length).map(|_| util::random_bit_scalar(&mut rng)).collect();
-        let bit_vector = util::random_scalars(length, &mut rng);
+        //let bit_vector = util::random_scalars(length, &mut rng);
+        let mut bit_vector = Vec::new();
+        for _ in 0..length {
+            bit_vector.push(util::random_bit_scalar(&mut rng));
+        }
+
+
         //let s_blinding: Vec<Scalar> = (0..length).map(|_| util::random_scalar(&mut rng)).collect();
         let s_blinding = util::random_scalars(length, &mut rng);
 
@@ -45,7 +51,7 @@ impl Prover {
             coms_v_k.push(pp.get_commit_base().commit(bit_vector[i], s_blinding[i]));
         }
 
-        let shares_coms = Vec::new();
+        // let shares_coms = Vec::new();
         let share_f_i_k = Vec::new();
         let share_r_i_k = Vec::new();
         let valid_shares = Vec::new();
@@ -54,7 +60,7 @@ impl Prover {
             bit_vector,
             s_blinding,
             coms_v_k,
-            shares_coms,
+            // shares_coms,
             sig_key,
             vrfy_key,
             share_f_i_k,
@@ -79,12 +85,12 @@ impl Prover {
 
 
 
-    pub fn verify_share_and_sig(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: Scalar, r_i_k: Scalar) -> Result<Ed25519Signature,&'static str> {
+    pub fn verify_share_and_sig(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: Scalar, r_i_k: Scalar) -> Option<Ed25519Signature> {
         let result = Self::double_check(self.index, coms, pp, f_i_k, r_i_k);
         if result {
-            Ok(sign_verified_deal(&self.sig_key, &coms))
+            Some(sign_verified_deal(&self.sig_key, &coms))
         } else {
-            Err("Invalid share")
+            None
         }
     }
 }
