@@ -12,18 +12,25 @@ use rand_core::le;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
+use crate::sig::{sign_verified_deal};
+use crate::low_deg::low_deg_test;
 pub struct Prover {
-    bit_vector: Vec<Scalar>, 
+    index: usize,
+    bit_vector: Vec<Scalar>, //随机比特向量
     s_blinding: Vec<Scalar>,
     coms_v_k: Vec<G1Projective>,
     // ============================================================
     pub(crate) sig_key: Ed25519PrivateKey,
+    pub(crate) vrfy_key: Ed25519PublicKey,
     // ============================================================
     shares_coms: Vec<G1Projective>,
+    share_f_i_k: Vec<Scalar>,//长度是Client的数量
+    share_r_i_k: Vec<Scalar>,//长度是Client的数量
+    valid_shares: Vec<bool>,//长度是Client的数量
 }
 
 impl Prover {
-    pub fn new(pp:&PublicParameters, sig_key:Ed25519PrivateKey) -> Self {
+    pub fn new(index:usize, pp:&PublicParameters, sig_key:Ed25519PrivateKey, vrfy_key:Ed25519PublicKey) -> Self {
         // Generate a random bit vector of length `n_b'`
         let length = pp.get_n_b();
         let mut rng = rand::thread_rng();
@@ -39,13 +46,20 @@ impl Prover {
         }
 
         let shares_coms = Vec::new();
-
+        let share_f_i_k = Vec::new();
+        let share_r_i_k = Vec::new();
+        let valid_shares = Vec::new();
         Self {
+            index,
             bit_vector,
             s_blinding,
             coms_v_k,
             shares_coms,
             sig_key,
+            vrfy_key,
+            share_f_i_k,
+            share_r_i_k,
+            valid_shares,
         }
 
     }
@@ -55,6 +69,22 @@ impl Prover {
     }
 
     // pub fn input_shares_coms(coms_f_x) -> Self {
-
     // }
+
+    fn double_check(ind:usize, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: Scalar, r_i_k: Scalar) -> bool {
+        let commit_valid = pp.get_commit_base().vrfy(f_i_k, r_i_k, coms[ind].clone());
+        let deg_valid = low_deg_test(&coms, pp.get_threshold(), pp.get_prover_num());
+        commit_valid && deg_valid
+    }
+
+
+
+    pub fn verify_share_and_sig(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: Scalar, r_i_k: Scalar) -> Result<Ed25519Signature,&'static str> {
+        let result = Self::double_check(self.index, coms, pp, f_i_k, r_i_k);
+        if result {
+            Ok(sign_verified_deal(&self.sig_key, &coms))
+        } else {
+            Err("Invalid share")
+        }
+    }
 }

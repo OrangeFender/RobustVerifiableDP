@@ -1,4 +1,5 @@
 use blstrs::{G1Projective, Scalar};
+use rand::seq::index;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
@@ -8,6 +9,7 @@ use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signatur
 use crate::transcript::TranscriptEd;            
 
 pub struct Client{
+    index: usize,
     x_int: usize,
     x_scalar: Scalar,
     r_poly: Vec<Scalar>,//commitment blinding factor's polynomial coefficients
@@ -18,7 +20,9 @@ pub struct Client{
 }
 
 impl Client{
-    pub fn new(x_int: usize,pp:PublicParameters) -> Self {
+    pub fn new(index: usize, x: bool,pp:&PublicParameters) -> Self {
+        let x_int = if x {1} else {0};
+        
         let x_scalar = Scalar::from(x_int as u64);
 
         
@@ -51,6 +55,7 @@ impl Client{
         }
 
         Self {
+            index,
             x_int,
             x_scalar,
             r_poly,
@@ -63,6 +68,10 @@ impl Client{
 
     pub fn get_coms_f_x(&self) -> Vec<G1Projective> {
         self.coms_f_x.clone()
+    }
+
+    pub fn get_evals(&self, ind:usize) -> (Scalar, Scalar) {
+        (self.f_eval[ind].clone(), self.r_eval[ind].clone())
     }
 
     pub fn send_ith_share(&self, i: usize) -> (Scalar, Scalar) {

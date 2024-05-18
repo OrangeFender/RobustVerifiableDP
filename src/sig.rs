@@ -90,10 +90,11 @@ pub fn generate_ed_sig_keys(n: usize) -> Vec<KeyPair<Ed25519PrivateKey, Ed25519P
 
 // 对于Prover需要签名, 这里需要在其他函数完成两步验证, 验证通过后再进行签名
 // 利用prover的签名密钥签名
-pub fn sign_verified_deal(sig_key:&Ed25519PrivateKey, coms_f_x: &Vec<G1Projective>) -> Option<Ed25519Signature> {
+pub fn sign_verified_deal(sig_key:&Ed25519PrivateKey, coms_f_x: &Vec<G1Projective>) -> Ed25519Signature {
     // Return signature the dealing is valid
     let msg = bcs::to_bytes(&coms_f_x).unwrap();
-    return Some(sig_key.sign_arbitrary_message(msg.as_slice()));
+    //return Some(sig_key.sign_arbitrary_message(msg.as_slice()));//去掉了some
+    return sig_key.sign_arbitrary_message(msg.as_slice());
 }
 
 // 对于Client需要验证签名。
