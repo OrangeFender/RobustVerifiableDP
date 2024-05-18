@@ -6,14 +6,15 @@ use dp::prover::Prover;
 use aptos_crypto::multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature};
 use dp::sig::{generate_ed_sig_keys};
 
+const N_B: usize = 10;
 const NUM_CLIENTS: usize = 100;
 const NUM_PROVERS: usize = 10;
-const THRESHOLD: usize = 5;
+const THRESHOLD: usize = 4;
 fn main(){
     // Create public parameters
     //生成公共参数
     let pp = PublicParameters::new(
-        NUM_CLIENTS, NUM_PROVERS, THRESHOLD, b"seed"
+        N_B, NUM_PROVERS, THRESHOLD, b"seed"
         );
 
 
@@ -43,7 +44,7 @@ fn main(){
         for j in 0..NUM_CLIENTS {
             let client = &clients[j];
             let coms_f_x = client.get_coms_f_x();
-            let (f_eval , r_eval) = client.get_evals(j);
+            let (f_eval , r_eval) = client.get_evals(i);
             let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
             //TODO
         }
