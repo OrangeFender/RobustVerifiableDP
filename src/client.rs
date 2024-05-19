@@ -104,4 +104,6 @@ impl Client{
         TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig)
     }
 
+    
+
 }

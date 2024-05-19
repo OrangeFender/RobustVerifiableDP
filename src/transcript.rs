@@ -77,7 +77,7 @@ use crate::util::random_scalars_range;
 // 这里将将原来的PolyComReceiver:self替换为了pv_share
 pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
     if t.shares().len() == 0{
-        return true;
+        return true;//TODO 删掉这部分
     }
     let num_signed = t.agg_sig().get_num_voters();
     let n = t.coms().len();
