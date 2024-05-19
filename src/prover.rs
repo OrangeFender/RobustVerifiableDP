@@ -18,7 +18,9 @@ pub struct Prover {
     index: usize,
     bit_vector: Vec<Scalar>, //随机比特向量
     s_blinding: Vec<Scalar>,
+    s_blinding_xor: Vec<Scalar>,
     coms_v_k: Vec<G1Projective>,
+    coms_v_k_xor: Vec<G1Projective>,
     // ============================================================
     pub(crate) sig_key: Ed25519PrivateKey,
     pub(crate) vrfy_key: Ed25519PublicKey,
@@ -59,7 +61,9 @@ impl Prover {
             index,
             bit_vector,
             s_blinding,
+            s_blinding_xor: Vec::new(),
             coms_v_k,
+            coms_v_k_xor: Vec::new(),
             // shares_coms,
             sig_key,
             vrfy_key,
@@ -93,4 +97,6 @@ impl Prover {
             None
         }
     }
+
+
 }
