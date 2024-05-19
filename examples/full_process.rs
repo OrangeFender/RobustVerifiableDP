@@ -13,7 +13,7 @@ use rand::Rng;
 
 
 const N_B: usize = 10;
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 15;
 const NUM_PROVERS: usize = 10;
 const THRESHOLD: usize = 4;
 fn main(){
@@ -56,7 +56,8 @@ fn main(){
             let coms_f_x = client.get_coms_f_x();
             let (f_eval , r_eval) = client.get_evals(i);
             let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
-            sigs_client_prover[i][j] = ret;
+            assert!(ret.is_some());
+            sigs_client_prover[j][i] = ret;
         }
     }
 
@@ -65,7 +66,7 @@ fn main(){
         let pk= sig_keys[i].public_key.clone();
         for j in 0..NUM_CLIENTS {
             let client = &clients[j];
-            let sig = sigs_client_prover[i][j].clone().unwrap();            
+            let sig = sigs_client_prover[j][i].clone().unwrap();            
             let valid = client.vrfy_sig( &pk, &sig);
             assert!(valid);
         }
@@ -89,7 +90,7 @@ fn main(){
         let mut sigs = Vec::new();
         for j in 0..NUM_PROVERS {
             if valid_sigs[i][j] {
-                sigs.push(sigs_client_prover[j][i].clone().unwrap());
+                sigs.push(sigs_client_prover[i][j].clone().unwrap());
             }
         }
         let transcript = client.get_transcript(NUM_PROVERS, &valid_sigs[i], sigs);
@@ -101,32 +102,32 @@ fn main(){
         let client = &clients[i];
         let transcript = &transcripts[i];
         let valid = verify_transcript(&client.get_coms_f_x(), transcript, &pp, &pks);
-        assert!(valid);  // assert肯定不会通过吧。。。
+        assert!(valid);  
     }
 
-    // 对于通过验证的Clients, 生成simga_or proof
-    let mut create_proofs: Vec<ProofScalar> = Vec::new();
-    for i in 0..NUM_CLIENTS {
-        let client = &clients[i];
-        let mut create_proof;
-        // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
-        if client.x_int == 0 {
-            create_proof = create_proof_0(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
-        }
-        else {
-            create_proof = create_proof_1(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
-        }
-        create_proofs.push(create_proof);
-    }
+    // // 对于通过验证的Clients, 生成simga_or proof
+    // let mut create_proofs: Vec<ProofScalar> = Vec::new();
+    // for i in 0..NUM_CLIENTS {
+    //     let client = &clients[i];
+    //     let mut create_proof;
+    //     // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
+    //     if client.x_int == 0 {
+    //         create_proof = create_proof_0(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
+    //     }
+    //     else {
+    //         create_proof = create_proof_1(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
+    //     }
+    //     create_proofs.push(create_proof);
+    // }
 
-    // 对于Provers来说, 需要首先重构出ci
-    // 我觉着需要一个公开变量来存储所有的commit，不能都让commit在clients的transcript中，第一步就应该广播
-    let mut com_recons: Vec<G1Projective> = Vec::new();
+    // // 对于Provers来说, 需要首先重构出ci
+    // // 我觉着需要一个公开变量来存储所有的commit，不能都让commit在clients的transcript中，第一步就应该广播
+    // let mut com_recons: Vec<G1Projective> = Vec::new();
 
-    // Provers重构出ci之后, 所有的prover对ci做验证
-    for i in 0..NUM_CLIENTS {
+    // // Provers重构出ci之后, 所有的prover对ci做验证
+    // for i in 0..NUM_CLIENTS {
 
-    }
+    // }
 
 
 }

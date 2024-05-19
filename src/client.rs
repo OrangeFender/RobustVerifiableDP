@@ -88,7 +88,7 @@ impl Client{
     // This function outputs the Mixed-VSS transcript. 
     // This function assumes that all signatures are valid
     pub fn get_transcript(&self, num_prover:usize, signers: &Vec<bool>, sigs: Vec<Ed25519Signature>) -> TranscriptEd {
-        let agg_sig = aggregate_sig(signers.clone(), sigs);
+        let agg_sig = aggregate_sig(signers.clone(), sigs.clone());
         let missing_count = num_prover-agg_sig.get_num_voters();
 
         let mut shares = Vec::with_capacity(missing_count);
@@ -96,12 +96,12 @@ impl Client{
 
         for (i, &is_set) in signers.iter().enumerate() {
             if !is_set {
-                shares.push(self.f_poly[i]);
-                randomness.push(self.r_poly[i]);
+                shares.push(self.f_eval[i]);
+                randomness.push(self.r_eval[i]);
             }
         }
 
-        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig)
+        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig, sigs.clone())
     }
 
     
