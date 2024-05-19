@@ -17,7 +17,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 
 
 
-fn hash_coms(coms: &Vec<Vec<G1Projective>>,nb:u64) -> u64 {//hash the vector of G1Projective
+fn hash_coms(coms: &Vec<Vec<G1Projective>>,nb:usize) -> u64 {//hash the vector of G1Projective
     assert!(nb <= 64);//nb should be less than 64
     let mut concatenated:Vec<u8> = Vec::new();
     for i in 0..coms.len() {
@@ -29,7 +29,7 @@ fn hash_coms(coms: &Vec<Vec<G1Projective>>,nb:u64) -> u64 {//hash the vector of 
 
 
 
-fn convert_to_bit_array(hash: u64, nb: u64) -> Vec<bool> {//convert hash to binary and then to scalar bit array(nb bits)
+fn convert_to_bit_array(hash: u64, nb: usize) -> Vec<bool> {//convert hash to binary and then to scalar bit array(nb bits)
     let mut result: Vec<bool> = Vec::new();
     for i in 0..nb {
         let bit = (hash >> i) & 1;
@@ -38,7 +38,7 @@ fn convert_to_bit_array(hash: u64, nb: u64) -> Vec<bool> {//convert hash to bina
     result
 }
 
-pub fn hash_to_bit_array(coms: &Vec<Vec<G1Projective>>,nb:u64) -> Vec<bool> {
+pub fn hash_to_bit_array(coms: &Vec<Vec<G1Projective>>,nb:usize) -> Vec<bool> {
     let hash = hash_coms(coms,nb);
     convert_to_bit_array(hash, nb)
 }

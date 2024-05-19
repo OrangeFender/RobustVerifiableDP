@@ -23,7 +23,7 @@ pub struct Prover {
     s_blinding: Vec<Scalar>,
     s_blinding_xor: Vec<Scalar>,
     coms_v_k: Vec<G1Projective>,
-    coms_v_k_xor: Vec<G1Projective>,
+    //coms_v_k_xor: Vec<G1Projective>,
     // ============================================================
     pub(crate) sig_key: Ed25519PrivateKey,
     pub(crate) vrfy_key: Ed25519PublicKey,
@@ -67,7 +67,7 @@ impl Prover {
             bit_vector_xor: Vec::new(),
             s_blinding_xor: Vec::new(),
             coms_v_k,
-            coms_v_k_xor: Vec::new(),
+            //coms_v_k_xor: Vec::new(),
             // shares_coms,
             sig_key,
             vrfy_key,
@@ -82,8 +82,8 @@ impl Prover {
         self.coms_v_k.clone()
     }
 
-    pub fn input_shares_coms(&mut self,pp:PublicParameters,f:Scalar,r:Scalar,com:G1Projective) {
-        assert!(pp.get_commit_base().vrfy(f, r, com));
+    pub fn input_shares(&mut self,f:Scalar, r:Scalar) {
+        //assert!(pp.get_commit_base().vrfy(f, r, com));
         self.share_f_i_k.push(f);
         self.share_r_i_k.push(r);
     }
@@ -116,8 +116,20 @@ impl Prover {
                 self.s_blinding_xor.push(self.s_blinding[i].clone());
             }
         }
-        self.coms_v_k_xor = xor_commitments(&self.coms_v_k, hash_bit_vec, pp.get_g(), pp.get_h())
-        
+        //self.coms_v_k_xor = xor_commitments(&self.coms_v_k, hash_bit_vec, pp.get_g(), pp.get_h())
+    }
+    pub fn calc_output(&self, pp:&PublicParameters) -> (Scalar,Scalar) {
+        let mut res=Scalar::zero();
+        let mut proof = Scalar::zero();
+        for i in 0..pp.get_n_b() {
+            res=res+&self.bit_vector_xor[i].clone();
+            proof=proof+&self.s_blinding_xor[i].clone();
+        }
+        for i in 0..self.share_f_i_k.len() {
+            res=res+&self.share_f_i_k[i].clone();
+            proof=proof+&self.share_r_i_k[i].clone();
+        }
+        (res,proof)
     }
 
 

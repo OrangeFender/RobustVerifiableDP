@@ -78,9 +78,6 @@ impl Client{
         (self.f_eval[ind].clone(), self.r_eval[ind].clone())
     }
 
-    pub fn send_ith_share(&self, i: usize) -> (Scalar, Scalar) {
-        (self.f_eval[i], self.r_eval[i])
-    }
 
 
     pub fn vrfy_sig(&self, pk: &Ed25519PublicKey, sig: &Ed25519Signature) -> bool {

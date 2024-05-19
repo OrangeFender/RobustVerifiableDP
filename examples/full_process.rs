@@ -1,6 +1,6 @@
 extern crate robust_verifiable_dp as dp;
 
-use blstrs::G1Projective;
+use blstrs::{G1Projective,Scalar};
 use dp::sigma_or::{create_proof_0, create_proof_1, ProofScalar};
 use dp::transcript::{self, verify_transcript, TranscriptEd};
 use dp::{client::Client, sig};
@@ -8,6 +8,8 @@ use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
 use dp::recon::reconstruct_com;
 use dp::sigma_or::{sigma_or_verify};
+use dp::hash_xor::{hash_to_bit_array,xor_commitments};
+use dp::commitment::Commit;
 
 use aptos_crypto::{ed25519::Signature, multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature}};
 use dp::sig::{generate_ed_sig_keys};
@@ -136,7 +138,40 @@ fn main(){
     for i in 0..NUM_CLIENTS {
             let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i]);
             assert!(valid);
+            for j in 0..NUM_PROVERS {
+                let (f,r)=clients[i].get_evals(j);
+                provers[j].input_shares(f,r);
+            }
     }
 
-    
+    //计算哈希值
+    let mut all_commitments: Vec<Vec<G1Projective>> = Vec::new();
+    for i in 0..NUM_PROVERS {
+        let coms = provers[i].get_coms_v_k();
+        all_commitments.push(coms);
+    }
+    let hash = hash_to_bit_array(&all_commitments,pp.get_n_b());
+
+
+    // prover给出最后结果的share
+    let mut res_shares: Vec<Scalar> = Vec::new();
+    let mut res_proof: Vec<Scalar> = Vec::new();
+    for i in 0..NUM_PROVERS{
+        provers[i].x_or(&pp,&hash);
+        let (y,proof) = provers[i].calc_output(&pp);
+        res_shares.push(y);
+        res_proof.push(proof);
+
+        //verifier最后的验证
+        let noise_commitment = xor_commitments(&provers[i].get_coms_v_k(), &hash,pp.get_g(), pp.get_h());
+        let mut last_commitment = noise_commitment[0];
+        for j in 1..pp.get_n_b() {
+            last_commitment = last_commitment + noise_commitment[j];
+        }
+        for j in 0..NUM_CLIENTS {
+            last_commitment = last_commitment + clients[j].get_coms_f_x()[i];
+        }
+        assert!(last_commitment == pp.get_commit_base().commit(y,proof));
+    }
+
 }
