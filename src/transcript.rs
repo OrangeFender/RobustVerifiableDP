@@ -1,7 +1,7 @@
 use blstrs::{G1Projective, Scalar};
 
 use crate::commitment::Commit;
-use crate::sig::EdSignature;
+use crate::sig::{EdSignature, verify_sig};
 
 #[derive(Clone)]
 #[allow(non_snake_case)]
@@ -14,15 +14,18 @@ pub struct TranscriptEd {
     randomness: Vec<Scalar>,
     /// Multisignature from the set of nodes who received valid shares
     agg_sig : EdSignature,
+
+    sigs: Vec<Ed25519Signature>,
 }
 
 impl TranscriptEd {
-    pub fn new(coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, agg_sig: EdSignature) -> Self {
+    pub fn new(coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, agg_sig: EdSignature, sigs:Vec<Ed25519Signature> ) -> Self {
         Self {
             coms: coms,
             shares: shares,
             randomness: randomness,
             agg_sig: agg_sig,
+            sigs: sigs,
         }
     }
 
@@ -76,9 +79,7 @@ use crate::util::random_scalars_range;
 // Prover 验证transcript
 // 这里将将原来的PolyComReceiver:self替换为了pv_share
 pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
-    if t.shares().len() == 0{
-        return true;//TODO 删掉这部分
-    }
+ 
     let num_signed = t.agg_sig().get_num_voters();
     let n = t.coms().len();
     let missing_ct = n-num_signed;
@@ -92,13 +93,21 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
 
     let multi_pks=t.agg_sig.get_signers_addresses(pks);
 
-    let threshold=threshold.try_into().unwrap();
+    //let threshold=threshold.try_into().unwrap();
 
-    let agg_pk = MultiEd25519PublicKey::new(multi_pks, threshold).unwrap();
+    let agg_pk = MultiEd25519PublicKey::new(multi_pks.clone(), threshold).unwrap();
 
     // Checking correctness of aggregate signature
     let msg = bcs::to_bytes(pv_share).unwrap();
-    assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
+    //assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
+    //TODO目前还是用的普通签名
+    for i in 0..num_signed {
+        let ret=verify_sig(&pv_share.clone(), &multi_pks[i], t.sigs[i].clone());
+        //assert!(ret.is_ok());
+        if ret==false{
+            return false;
+        }
+    }
 
     let mut missing_coms = Vec::with_capacity(t.shares().len());
 
@@ -117,6 +126,10 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
             idx +=1;
             missing_coms.push(pv_share[pos]);
         }
+    }
+
+    if missing_coms.len()==0{
+        return true;
     }
 
     let com_pos = pp.get_commit_base().commit(s, r);

@@ -13,7 +13,7 @@ use rand::Rng;
 
 
 const N_B: usize = 10;
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 15;
 const NUM_PROVERS: usize = 10;
 const THRESHOLD: usize = 4;
 fn main(){
@@ -56,7 +56,8 @@ fn main(){
             let coms_f_x = client.get_coms_f_x();
             let (f_eval , r_eval) = client.get_evals(i);
             let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
-            sigs_client_prover[i][j] = ret;
+            assert!(ret.is_some());
+            sigs_client_prover[j][i] = ret;
         }
     }
 
@@ -65,7 +66,7 @@ fn main(){
         let pk= sig_keys[i].public_key.clone();
         for j in 0..NUM_CLIENTS {
             let client = &clients[j];
-            let sig = sigs_client_prover[i][j].clone().unwrap();            
+            let sig = sigs_client_prover[j][i].clone().unwrap();            
             let valid = client.vrfy_sig( &pk, &sig);
             assert!(valid);
         }
@@ -89,7 +90,7 @@ fn main(){
         let mut sigs = Vec::new();
         for j in 0..NUM_PROVERS {
             if valid_sigs[i][j] {
-                sigs.push(sigs_client_prover[j][i].clone().unwrap());
+                sigs.push(sigs_client_prover[i][j].clone().unwrap());
             }
         }
         let transcript = client.get_transcript(NUM_PROVERS, &valid_sigs[i], sigs);
