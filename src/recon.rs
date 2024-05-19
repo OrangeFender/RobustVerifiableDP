@@ -34,7 +34,8 @@ use crate::{evaluation_domain::BatchEvaluationDomain, lagrange::lagrange_coeffic
 // }
 
 // 最后一步重构
-// players 表示所需重构的prover的个数
+// players 表示所需重构的prover的个数，即多项式的次数deg+1
+// n表示prover的个数
 pub fn reconstruct_y(y_k: &Vec<Scalar>, players: &Vec<usize>, n:usize) -> Scalar {
     let batch_dom = BatchEvaluationDomain::new(n);
     let lagr = lagrange_coefficients_at_zero(&batch_dom, players.as_slice());
@@ -65,6 +66,7 @@ pub fn reconstruct_com(ct_com: &Vec<G1Projective>, players: &Vec<usize>, n:usize
     //     com_i = G1Projective::multi_exp(com_i, lagr[i]);
     // }
     // let com_arr: [G1Projective; t] = ct_com.try_into().unwrap();
+    // 两个数组对应元素相乘再相加，即c_i=\sum_k[c_i(k)*L_k(0)]
     let com_i = G1Projective::multi_exp(ct_com.as_slice(), &lagr);
 
     com_i

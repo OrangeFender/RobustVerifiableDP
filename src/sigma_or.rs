@@ -14,6 +14,7 @@ use crate::commitment::{CommitBase, Commit};
 use crate::public_parameters::PublicParameters;
 use crate::util::*;
 
+#[derive(Clone)]
 pub struct  ProofScalar{
     pub com: G1Projective,
     pub e0 : Scalar, 
@@ -120,14 +121,14 @@ pub fn create_proof_1(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scala
 }
 
 // verify_or_proof
-pub fn verify(commit_base: &CommitBase, transcript: &ProofScalar) -> bool {
+pub fn verify(commit_base: &CommitBase, pf_scalar: &ProofScalar) -> bool {
 
-    // CHECK the hash of the initial transcript is equal to e and then 
+    // CHECK the hash of the initial pf_scalar is equal to e and then 
     let mut hasher = Sha3_256::new();
     let mut input_to_rom: Vec<u8> = Vec::new();
-    input_to_rom.extend(transcript.com.to_compressed());
-    input_to_rom.extend(transcript.d0.to_compressed());
-    input_to_rom.extend(transcript.d1.to_compressed());
+    input_to_rom.extend(pf_scalar.com.to_compressed());
+    input_to_rom.extend(pf_scalar.d0.to_compressed());
+    input_to_rom.extend(pf_scalar.d1.to_compressed());
     hasher.update(input_to_rom); // this will take d0, d1, commitment as a byte array
     let result: [u8;32] =  hasher.finalize().into();
 
@@ -136,21 +137,21 @@ pub fn verify(commit_base: &CommitBase, transcript: &ProofScalar) -> bool {
         
     // let e = biguint_to_scalar(&remainder);
     let e: Scalar = from_bytes_to_modscalar(&result);
-    assert_eq!(e, transcript.e);
+    assert_eq!(e, pf_scalar.e);
 
-    // transcript.e = hash(d0,d1, com. )
-    assert_eq!(transcript.e, transcript.e1 + transcript.e0); // CHECK e = e0 + e1
+    // pf_scalar.e = hash(d0,d1, com. )
+    assert_eq!(pf_scalar.e, pf_scalar.e1 + pf_scalar.e0); // CHECK e = e0 + e1
 
-    let ce0 = &transcript.com * &transcript.e0; //c^{e0}
-    let hv0 = commit_base.bases[1] * &transcript.v0; //h^{v0}
-    assert_eq!(&transcript.d0 + &ce0, hv0); //d0 c^{e0} = h^{v0}
+    let ce0 = &pf_scalar.com * &pf_scalar.e0; //c^{e0}
+    let hv0 = commit_base.bases[1] * &pf_scalar.v0; //h^{v0}
+    assert_eq!(&pf_scalar.d0 + &ce0, hv0); //d0 c^{e0} = h^{v0}
 
-    let ce1 = &transcript.com * &transcript.e1; // c^{e1}
+    let ce1 = &pf_scalar.com * &pf_scalar.e1; // c^{e1}
 
-    let ge1 = commit_base.bases[0] * &transcript.e1; // g^{e1}
-    let hv1 = commit_base.bases[1] * &transcript.v1;// h^{v1}
+    let ge1 = commit_base.bases[0] * &pf_scalar.e1; // g^{e1}
+    let hv1 = commit_base.bases[1] * &pf_scalar.v1;// h^{v1}
 
-    assert_eq!(&transcript.d1 + &ce1, &ge1 + &hv1); //d1 c^{e1} = g^{e1}h^{v1}
+    assert_eq!(&pf_scalar.d1 + &ce1, &ge1 + &hv1); //d1 c^{e1} = g^{e1}h^{v1}
 
     return true;
 }
