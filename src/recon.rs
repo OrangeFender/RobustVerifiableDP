@@ -2,7 +2,6 @@ use std::ops::Mul;
 
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
-use crate::commitment::CommitBase;
 use crate::{evaluation_domain::BatchEvaluationDomain, lagrange::lagrange_coefficients_at_zero};
 
 // 第7步重构
@@ -36,7 +35,7 @@ use crate::{evaluation_domain::BatchEvaluationDomain, lagrange::lagrange_coeffic
 
 // 最后一步重构
 // players 表示所需重构的prover的个数
-pub fn reconstruct_y(ct_coms: &Vec<G1Projective>, y_k: &Vec<Scalar>, players: &Vec<usize>, n:usize, commit_base: &CommitBase) -> Scalar {
+pub fn reconstruct_y(y_k: &Vec<Scalar>, players: &Vec<usize>, n:usize) -> Scalar {
     let batch_dom = BatchEvaluationDomain::new(n);
     let lagr = lagrange_coefficients_at_zero(&batch_dom, players.as_slice());
 
@@ -54,16 +53,19 @@ pub fn reconstruct_y(ct_coms: &Vec<G1Projective>, y_k: &Vec<Scalar>, players: &V
 // 调用m次来恢复f_1(0),...,f_m(0)，n是Client的个数
 // players 表示所需重构的prover的个数，share_f和share_r对应其拥有的秘密份额
 // prover 重构出请求的第i个Client的commitment
-pub fn reconstruct_com(ct_com: &Vec<Scalar>, players: &Vec<usize>, n:usize) -> Scalar {
+pub fn reconstruct_com(ct_com: &Vec<G1Projective>, players: &Vec<usize>, n:usize) -> G1Projective {
     let batch_dom = BatchEvaluationDomain::new(n);
     let lagr = lagrange_coefficients_at_zero(&batch_dom, players.as_slice());
 
-    let mut com_i = Scalar::zero();
+    // let com_i = ct_com[0];
 
-    let t = ct_com.len();
-    for i in 0..t {
-        com_i += lagr[i].mul(ct_com[i]);
-    }
+    // let t = ct_com.len();
+    // for i in 1..t {
+    //     com_i = &ct_com[i];
+    //     com_i = G1Projective::multi_exp(com_i, lagr[i]);
+    // }
+    // let com_arr: [G1Projective; t] = ct_com.try_into().unwrap();
+    let com_i = G1Projective::multi_exp(ct_com.as_slice(), &lagr);
 
     com_i
 }
