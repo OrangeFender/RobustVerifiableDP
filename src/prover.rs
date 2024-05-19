@@ -6,6 +6,7 @@ use aptos_crypto::multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature};
 use aptos_crypto::test_utils::{TEST_SEED, KeyPair};
 // ============================================================
 use blstrs::{G1Projective, Scalar};
+use ff::Field;
 use rand::Rng;
 use rand_core::le;
 
@@ -14,9 +15,11 @@ use crate::public_parameters::PublicParameters;
 use crate::util;
 use crate::sig::{sign_verified_deal};
 use crate::low_deg::low_deg_test;
+use crate::hash_xor::xor_commitments;
 pub struct Prover {
     index: usize,
     bit_vector: Vec<Scalar>, //随机比特向量
+    bit_vector_xor: Vec<Scalar>, //随机比特向量的异或
     s_blinding: Vec<Scalar>,
     s_blinding_xor: Vec<Scalar>,
     coms_v_k: Vec<G1Projective>,
@@ -61,6 +64,7 @@ impl Prover {
             index,
             bit_vector,
             s_blinding,
+            bit_vector_xor: Vec::new(),
             s_blinding_xor: Vec::new(),
             coms_v_k,
             coms_v_k_xor: Vec::new(),
@@ -78,8 +82,11 @@ impl Prover {
         self.coms_v_k.clone()
     }
 
-    // pub fn input_shares_coms(coms_f_x) -> Self {
-    // }
+    pub fn input_shares_coms(&mut self,pp:PublicParameters,f:Scalar,r:Scalar,com:G1Projective) {
+        assert!(pp.get_commit_base().vrfy(f, r, com));
+        self.share_f_i_k.push(f);
+        self.share_r_i_k.push(r);
+    }
 
     fn double_check(ind:usize, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: Scalar, r_i_k: Scalar) -> bool {
         let commit_valid = pp.get_commit_base().vrfy(f_i_k, r_i_k, coms[ind].clone());
@@ -96,6 +103,21 @@ impl Prover {
         } else {
             None
         }
+    }
+
+    pub fn x_or(&mut self, pp:&PublicParameters, hash_bit_vec:&Vec<bool>) {
+        for i in 0..pp.get_n_b() {
+            if(hash_bit_vec[i]) {
+                self.bit_vector_xor.push(Scalar::one()-self.bit_vector[i].clone());
+                self.s_blinding_xor.push(Scalar::one()-self.s_blinding[i].clone());
+            }
+            else {
+                self.bit_vector_xor.push(self.bit_vector[i].clone());
+                self.s_blinding_xor.push(self.s_blinding[i].clone());
+            }
+        }
+        self.coms_v_k_xor = xor_commitments(&self.coms_v_k, hash_bit_vec, pp.get_g(), pp.get_h())
+        
     }
 
 

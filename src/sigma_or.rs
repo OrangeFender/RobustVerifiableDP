@@ -121,7 +121,7 @@ pub fn create_proof_1(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scala
 }
 
 // verify_or_proof
-pub fn verify(commit_base: &CommitBase, pf_scalar: &ProofScalar) -> bool {
+pub fn sigma_or_verify(commit_base: &CommitBase, pf_scalar: &ProofScalar) -> bool {
 
     // CHECK the hash of the initial pf_scalar is equal to e and then 
     let mut hasher = Sha3_256::new();

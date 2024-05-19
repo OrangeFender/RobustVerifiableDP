@@ -47,10 +47,12 @@ pub fn xor_commitments(coms: &Vec<G1Projective>,bit_arry: &Vec<bool>, g:G1Projec
     let mut result = Vec::new();
     for i in 0..coms.len() {
         if bit_arry[i] {
-            
+            result.push(g+h- coms[i]);
         }else{
             result.push(coms[i]);
         }
     }
     result
 }
+
+

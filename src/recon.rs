@@ -67,7 +67,11 @@ pub fn reconstruct_com(ct_com: &Vec<G1Projective>, players: &Vec<usize>, n:usize
     // }
     // let com_arr: [G1Projective; t] = ct_com.try_into().unwrap();
     // 两个数组对应元素相乘再相加，即c_i=\sum_k[c_i(k)*L_k(0)]
-    let com_i = G1Projective::multi_exp(ct_com.as_slice(), &lagr);
+    let mut com0=ct_com[0].mul(lagr[0]);
+    
+    for i in 1..players.len() {
+        com0 = com0+&ct_com[i].mul(lagr[i]);
+    }
 
-    com_i
+    com0
 }

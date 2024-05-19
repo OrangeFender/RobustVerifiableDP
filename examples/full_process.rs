@@ -6,6 +6,9 @@ use dp::transcript::{self, verify_transcript, TranscriptEd};
 use dp::{client::Client, sig};
 use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
+use dp::recon::reconstruct_com;
+use dp::sigma_or::{sigma_or_verify};
+
 use aptos_crypto::{ed25519::Signature, multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature}};
 use dp::sig::{generate_ed_sig_keys};
 use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
@@ -105,31 +108,35 @@ fn main(){
         assert!(valid);  
     }
 
-    // // 对于通过验证的Clients, 生成simga_or proof
-    // let mut create_proofs: Vec<ProofScalar> = Vec::new();
-    // for i in 0..NUM_CLIENTS {
-    //     let client = &clients[i];
-    //     let mut create_proof;
-    //     // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
-    //     if client.x_int == 0 {
-    //         create_proof = create_proof_0(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
-    //     }
-    //     else {
-    //         create_proof = create_proof_1(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
-    //     }
-    //     create_proofs.push(create_proof);
-    // }
 
-    // // 对于Provers来说, 需要首先重构出ci
-    // // 我觉着需要一个公开变量来存储所有的commit，不能都让commit在clients的transcript中，第一步就应该广播
-    // let mut com_recons: Vec<G1Projective> = Vec::new();
+     // 对于通过验证的Clients, 生成simga_or proof
+     let mut create_proofs: Vec<ProofScalar> = Vec::new();
+     for i in 0..NUM_CLIENTS {
+         let client = &clients[i];
+         let mut create_proof = client.create_sigma_proof(&pp);
+         create_proofs.push(create_proof);
+     }
+ 
+     // 对于每个Provers来说, 需要首先重构出ci
+     let mut com_recons: Vec<G1Projective> = Vec::new();
+     // 通过验证后直接选取Prover的前t+1个commit重构，因为已经验证过Client秘密分享的安全性了
+     let players: Vec<usize> = (0..NUM_PROVERS)
+     .take(THRESHOLD)
+     .collect::<Vec<usize>>();
+ 
+     for i in 0..NUM_CLIENTS {
+         let com_recon = reconstruct_com(&clients[i].get_coms_f_x(), &players, NUM_PROVERS);
+         assert!(create_proofs[i].com == com_recon);
+         com_recons.push(com_recon);
+     }
+     
+     // Provers重构出ci之后, 所有的prover对ci做验证
+     // let mut vrfy_recon_com: Vec<bool> = Vec::new();
+     // Provers在验证的时候，commit需要利用自己重构出的commit来验证
+    for i in 0..NUM_CLIENTS {
+            let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i]);
+            assert!(valid);
+    }
 
-    // // Provers重构出ci之后, 所有的prover对ci做验证
-    // for i in 0..NUM_CLIENTS {
-
-    // }
-
-    //产生DP证明
     
-
 }
