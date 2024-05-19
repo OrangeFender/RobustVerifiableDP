@@ -79,7 +79,7 @@ fn main(){
         let mut rng = rand::thread_rng();
         let index = rng.gen_range(0, NUM_PROVERS);
         for j in 0..(NUM_CLIENTS/2) {
-            valid_sigs[j][index] = false;  
+            valid_sigs[j][index] = false;  // 这两个不对应吗就是？
             sigs_client_prover[j][index] = None;
         }
     }
@@ -104,5 +104,32 @@ fn main(){
         let valid = verify_transcript(&client.get_coms_f_x(), transcript, &pp, &pks);
         assert!(valid);  
     }
+
+    // // 对于通过验证的Clients, 生成simga_or proof
+    // let mut create_proofs: Vec<ProofScalar> = Vec::new();
+    // for i in 0..NUM_CLIENTS {
+    //     let client = &clients[i];
+    //     let mut create_proof;
+    //     // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
+    //     if client.x_int == 0 {
+    //         create_proof = create_proof_0(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
+    //     }
+    //     else {
+    //         create_proof = create_proof_1(&pp.get_commit_base(), &client.x_scalar, &client.r_poly);
+    //     }
+    //     create_proofs.push(create_proof);
+    // }
+
+    // // 对于Provers来说, 需要首先重构出ci
+    // // 我觉着需要一个公开变量来存储所有的commit，不能都让commit在clients的transcript中，第一步就应该广播
+    // let mut com_recons: Vec<G1Projective> = Vec::new();
+
+    // // Provers重构出ci之后, 所有的prover对ci做验证
+    // for i in 0..NUM_CLIENTS {
+
+    // }
+
+    //产生DP证明
+    
 
 }
