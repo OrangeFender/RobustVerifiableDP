@@ -1,17 +1,14 @@
 // 功能：
 // 1. Client传入秘密份额(f_i(0), r_{i,0})后，create_or_proof；这里需要实现一个判断是0还是1
 // 2. Prover和Verifier执行验证verify_or_proof
-use rand::rngs::StdRng;
 use rand::thread_rng;
-use rand_core::SeedableRng;
 use blstrs::{G1Projective, Scalar};
 use sha3::{Digest, Sha3_256};
-use num_bigint::{BigUint, RandBigInt};
+use num_bigint::BigUint;
 use num_integer::Integer;
 
 
 use crate::commitment::{CommitBase, Commit};
-use crate::public_parameters::PublicParameters;
 use crate::util::*;
 
 #[derive(Clone)]

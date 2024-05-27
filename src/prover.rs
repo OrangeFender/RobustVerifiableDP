@@ -1,21 +1,14 @@
 // ============================================================
-use aptos_bitvec::BitVec;
-use aptos_crypto::{Uniform, Signature};
 use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
-use aptos_crypto::multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature};
-use aptos_crypto::test_utils::{TEST_SEED, KeyPair};
-// ============================================================
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
-use rand::Rng;
-use rand_core::le;
 
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
-use crate::sig::{sign_verified_deal};
+use crate::sig::sign_verified_deal;
 use crate::low_deg::low_deg_test;
-use crate::hash_xor::xor_commitments;
+
 pub struct Prover {
     index: usize,
     bit_vector: Vec<Scalar>, //随机比特向量
@@ -107,7 +100,7 @@ impl Prover {
 
     pub fn x_or(&mut self, pp:&PublicParameters, hash_bit_vec:&Vec<bool>) {
         for i in 0..pp.get_n_b() {
-            if(hash_bit_vec[i]) {
+            if hash_bit_vec[i] {
                 self.bit_vector_xor.push(Scalar::one()-self.bit_vector[i].clone());
                 self.s_blinding_xor.push(Scalar::one()-self.s_blinding[i].clone());
             }

@@ -115,7 +115,7 @@ fn main(){
      let mut create_proofs: Vec<ProofScalar> = Vec::new();
      for i in 0..NUM_CLIENTS {
          let client = &clients[i];
-         let mut create_proof = client.create_sigma_proof(&pp);
+         let create_proof = client.create_sigma_proof(&pp);
          create_proofs.push(create_proof);
      }
  

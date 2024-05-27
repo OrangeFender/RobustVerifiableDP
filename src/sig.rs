@@ -70,15 +70,11 @@ use aptos_crypto::{Uniform, Signature};
 use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
 use aptos_crypto::multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature};
 use aptos_crypto::test_utils::{TEST_SEED, KeyPair};
-use blstrs::{G1Projective, Scalar};
-use ff::Field;
+use blstrs::G1Projective;
 use rand::rngs::StdRng;
-use rand::thread_rng;
 use rand_core::SeedableRng;
 
 
-use crate::prover::Prover;
-use crate::client::Client;
 
 // 生成签名密钥对的函数
 pub fn generate_ed_sig_keys(n: usize) -> Vec<KeyPair<Ed25519PrivateKey, Ed25519PublicKey>> {

@@ -1,11 +1,10 @@
 use blstrs::{G1Projective, Scalar};
-use rand::seq::index;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
 use crate::fft::fft;
 use crate::sig::aggregate_sig;
-use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
+use aptos_crypto::ed25519::{ Ed25519PublicKey, Ed25519Signature};
 use crate::transcript::TranscriptEd;
 use crate::sig::verify_sig;
 use crate::sigma_or::{ProofScalar, create_proof_0, create_proof_1};
@@ -104,7 +103,7 @@ impl Client{
     }
 
     pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofScalar {
-        let mut create_proof;
+        let create_proof;
         // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
         if self.x_int == 0 {
             create_proof = create_proof_0(&pp.get_commit_base(), self.x_scalar, self.r_poly[0]);

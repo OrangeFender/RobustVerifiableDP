@@ -1,12 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use aptos_crypto::hash;
-use blstrs::{G1Projective, Scalar};
-use rand::Rng;
-use rand_core::le;
-use group::Curve;
-use sha3::digest::typenum::bit;
-const DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION : &[u8; 41] = b"DSTofRobustDP'sPublicParametersGeneration";
+use blstrs::G1Projective;
 
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {

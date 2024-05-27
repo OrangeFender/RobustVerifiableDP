@@ -40,14 +40,14 @@ pub fn reconstruct_y(y_k: &Vec<Scalar>, players: &Vec<usize>, n:usize) -> Scalar
     let batch_dom = BatchEvaluationDomain::new(n);
     let lagr = lagrange_coefficients_at_zero(&batch_dom, players.as_slice());
 
-    let mut Y = Scalar::zero();
+    let mut y = Scalar::zero();
 
     let t = y_k.len();
     for i in 0..t {
-        Y += lagr[i].mul(y_k[i]);
+        y += lagr[i].mul(y_k[i]);
     }
     
-    Y
+    y
 
 }
 
