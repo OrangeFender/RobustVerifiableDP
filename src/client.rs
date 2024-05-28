@@ -7,7 +7,7 @@ use crate::sig::aggregate_sig;
 use aptos_crypto::ed25519::{ Ed25519PublicKey, Ed25519Signature};
 use crate::transcript::TranscriptEd;
 use crate::sig::verify_sig;
-use crate::sigma_or::{ProofScalar, create_proof_0, create_proof_1};
+use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 
 
 pub struct Client{
@@ -102,7 +102,7 @@ impl Client{
         TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig, sigs.clone())
     }
 
-    pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofScalar {
+    pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofStruct {
         let create_proof;
         // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
         if self.x_int == 0 {

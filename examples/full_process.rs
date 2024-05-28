@@ -1,7 +1,7 @@
 extern crate robust_verifiable_dp as dp;
 
 use blstrs::{G1Projective,Scalar};
-use dp::sigma_or::{create_proof_0, create_proof_1, ProofScalar};
+use dp::sigma_or::ProofStruct;
 use dp::transcript::{self, verify_transcript, TranscriptEd};
 use dp::{client::Client, sig};
 use dp::public_parameters::PublicParameters;
@@ -112,7 +112,7 @@ fn main(){
 
 
      // 对于通过验证的Clients, 生成simga_or proof
-     let mut create_proofs: Vec<ProofScalar> = Vec::new();
+     let mut create_proofs: Vec<ProofStruct> = Vec::new();
      for i in 0..NUM_CLIENTS {
          let client = &clients[i];
          let create_proof = client.create_sigma_proof(&pp);

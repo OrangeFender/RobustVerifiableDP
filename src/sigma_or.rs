@@ -12,7 +12,7 @@ use crate::commitment::{CommitBase, Commit};
 use crate::util::*;
 
 #[derive(Clone)]
-pub struct  ProofScalar{
+pub struct  ProofStruct{
     pub com: G1Projective,
     pub e0 : Scalar, 
     pub e1 : Scalar, 
@@ -34,7 +34,7 @@ pub fn from_bytes_to_modscalar(bytes: &[u8;32]) -> Scalar {
 // self替换为commitbase中的g和h, 全都换到G1Projective上
 // ct_rand 表示Client的私有randomness
 // 应该传x_scalar，因为可能会有不属于{0,1}的值，
-pub fn create_proof_0(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scalar)->ProofScalar{
+pub fn create_proof_0(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scalar)->ProofStruct{
 
     // create FIAT shamir proof for when the secret is 0
     let mut rng = thread_rng();  // 随机数生成器
@@ -72,12 +72,12 @@ pub fn create_proof_0(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scala
     let e0 = e - e1;         
     let v0 = b + e0*ct_rand;
 
-    return ProofScalar{com, e0, e1, e, v0, v1, d0, d1};
+    return ProofStruct{com, e0, e1, e, v0, v1, d0, d1};
 
 }
 
 
-pub fn create_proof_1(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scalar)->ProofScalar{
+pub fn create_proof_1(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scalar)->ProofStruct{
 
     // create FIAT shamir proof for when the secret is 0
     let mut rng = thread_rng();  // 随机数生成器
@@ -113,12 +113,12 @@ pub fn create_proof_1(commit_base: &CommitBase, x_scalar: Scalar, ct_rand: Scala
     let e1 = e - e0;         
     let v1 = b + e1*ct_rand;
 
-    return ProofScalar{com, e0, e1, e, v0, v1, d0, d1};
+    return ProofStruct{com, e0, e1, e, v0, v1, d0, d1};
 
 }
 
 // verify_or_proof
-pub fn sigma_or_verify(commit_base: &CommitBase, pf_scalar: &ProofScalar) -> bool {
+pub fn sigma_or_verify(commit_base: &CommitBase, pf_scalar: &ProofStruct) -> bool {
 
     // CHECK the hash of the initial pf_scalar is equal to e and then 
     let mut hasher = Sha3_256::new();
