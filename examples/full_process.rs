@@ -10,6 +10,7 @@ use dp::recon::reconstruct_com;
 use dp::sigma_or::{sigma_or_verify};
 use dp::hash_xor::{hash_to_bit_array,xor_commitments};
 use dp::commitment::Commit;
+use dp::msg_structs::ComsAndShare;
 
 use aptos_crypto::{ed25519::Signature, multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature}};
 use dp::sig::{generate_ed_sig_keys};
@@ -38,7 +39,17 @@ fn main(){
         clients.push(client);
     }
 
-    
+    //----------------新测试的内容----------------
+    let mut clientmsg: Vec<Vec<ComsAndShare>> = Vec::new();
+    for i in 0..NUM_CLIENTS {
+        let mut msgs:Vec<ComsAndShare>=Vec::new();
+        for proverind in 0..NUM_PROVERS {
+            msgs.push(clients[i].create_prover_msg(&pp, proverind));
+        }
+        clientmsg.push(msgs);
+    }
+    //--------------------------------
+
     // Create provers
     //生成服务器
     let mut provers: Vec<Prover> = Vec::new();
@@ -50,6 +61,17 @@ fn main(){
         pks.push(sig_keys[i].public_key.clone());
     }
     
+    //----------------新测试的内容----------------
+    for i in 0..NUM_CLIENTS {
+        for j in 0..NUM_PROVERS {
+            let msg = &clientmsg[i][j];
+            let ret=provers[j].verify_share_and_sig(&msg.coms, &pp, msg.share, msg.pi);
+            assert!(ret.is_some());
+        }
+    }
+
+    //-----------------------------------------
+
     //二维数组，sigs[i][j]表示第i个prover对第j个client的签名
     // prover验证私人秘密
     let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
@@ -127,8 +149,7 @@ fn main(){
      .collect::<Vec<usize>>();
  
      for i in 0..NUM_CLIENTS {
-         let com_recon = reconstruct_com(&clients[i].get_coms_f_x(), &players, NUM_PROVERS);
-         assert!(create_proofs[i].com == com_recon);
+         let com_recon = reconstruct_com(&clients[i].get_coms_f_x(),  NUM_PROVERS);
          com_recons.push(com_recon);
      }
      
@@ -136,7 +157,7 @@ fn main(){
      // let mut vrfy_recon_com: Vec<bool> = Vec::new();
      // Provers在验证的时候，commit需要利用自己重构出的commit来验证
     for i in 0..NUM_CLIENTS {
-            let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i]);
+            let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i], com_recons[i].clone());
             assert!(valid);
             for j in 0..NUM_PROVERS {
                 let (f,r)=clients[i].get_evals(j);
@@ -174,4 +195,5 @@ fn main(){
         assert!(last_commitment == pp.get_commit_base().commit(y,proof));
     }
 
+    println!("All tests passed!");
 }

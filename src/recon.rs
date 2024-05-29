@@ -54,9 +54,10 @@ pub fn reconstruct_y(y_k: &Vec<Scalar>, players: &Vec<usize>, n:usize) -> Scalar
 // 调用m次来恢复f_1(0),...,f_m(0)，n是Client的个数
 // players 表示所需重构的prover的个数，share_f和share_r对应其拥有的秘密份额
 // prover 重构出请求的第i个Client的commitment
-pub fn reconstruct_com(ct_com: &Vec<G1Projective>, players: &Vec<usize>, n:usize) -> G1Projective {
+pub fn reconstruct_com(ct_com: &Vec<G1Projective>, n:usize) -> G1Projective {
     let batch_dom = BatchEvaluationDomain::new(n);
-    let lagr = lagrange_coefficients_at_zero(&batch_dom, players.as_slice());
+    let vec: Vec<_> = (1..=n).collect();
+    let lagr = lagrange_coefficients_at_zero(&batch_dom, vec.as_slice());
 
     // let com_i = ct_com[0];
 
@@ -69,7 +70,7 @@ pub fn reconstruct_com(ct_com: &Vec<G1Projective>, players: &Vec<usize>, n:usize
     // 两个数组对应元素相乘再相加，即c_i=\sum_k[c_i(k)*L_k(0)]
     let mut com0=ct_com[0].mul(lagr[0]);
     
-    for i in 1..players.len() {
+    for i in 1..n {
         com0 = com0+&ct_com[i].mul(lagr[i]);
     }
 
