@@ -15,4 +15,6 @@ pub mod transcript;
 pub mod sigma_or;
 pub mod recon;
 pub mod hash_xor;
+pub mod msg_structs;
+
 pub const DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION : &[u8; 41] = b"DSTofRobustDP'sPublicParametersGeneration";

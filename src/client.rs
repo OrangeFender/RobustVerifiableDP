@@ -8,7 +8,7 @@ use aptos_crypto::ed25519::{ Ed25519PublicKey, Ed25519Signature};
 use crate::transcript::TranscriptEd;
 use crate::sig::verify_sig;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
-
+use crate::msg_structs::coms_and_share;
 
 pub struct Client{
     index: usize,
@@ -113,6 +113,18 @@ impl Client{
         }
         
         create_proof
+    }
+
+    pub fn create_prover_msg(&self,pp: &PublicParameters,proverind:usize)->coms_and_share{
+        let sigma_proof=self.create_sigma_proof(pp);
+        let coms=self.get_coms_f_x();
+        let (f,r)=self.get_evals(proverind);
+        coms_and_share{
+            coms,
+            share:f,
+            pi:r,
+            proof:sigma_proof,
+        }
     }
 
 }
