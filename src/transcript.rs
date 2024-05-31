@@ -95,10 +95,10 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
 
     //let threshold=threshold.try_into().unwrap();
 
-    let agg_pk = MultiEd25519PublicKey::new(multi_pks.clone(), threshold).unwrap();
+    //let agg_pk = MultiEd25519PublicKey::new(multi_pks.clone(), threshold).unwrap();
 
     // Checking correctness of aggregate signature
-    let msg = bcs::to_bytes(pv_share).unwrap();
+    //let msg = bcs::to_bytes(pv_share).unwrap();
     //assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
     //TODO目前还是用的普通签名
     for i in 0..num_signed {
