@@ -85,9 +85,15 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     let missing_ct = n-num_signed;
     let threshold= pp.get_threshold();
     // Checking low-degree of the committed polynomial
-    assert!(low_deg_test(t.coms(), threshold, pp.get_prover_num())); 
-    assert!(t.shares().len() == t.randomness().len());
-    assert!(t.shares().len() == missing_ct);
+    if low_deg_test(t.coms(), threshold, pp.get_prover_num())==false{
+        return false;
+    }
+    if t.shares().len() != missing_ct {
+        return false;
+    }
+    if t.randomness().len() != missing_ct {
+        return false;
+    }
 
     // Aggregate public key
 
