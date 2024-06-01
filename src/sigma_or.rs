@@ -10,8 +10,10 @@ use blstrs::{G1Projective, Scalar};
 
 use crate::commitment::{CommitBase, Commit};
 use crate::util::*;
+use serde::Serialize;
 
 #[derive(Clone)]
+#[derive(Serialize)]
 pub struct  ProofStruct{
     //pub com: G1Projective,
     pub e0 : Scalar, 
