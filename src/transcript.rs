@@ -2,8 +2,9 @@ use blstrs::{G1Projective, Scalar};
 
 use crate::commitment::Commit;
 use crate::sig::{EdSignature, verify_sig};
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TranscriptEd {
     /// Pedersen commitment to the polynomial

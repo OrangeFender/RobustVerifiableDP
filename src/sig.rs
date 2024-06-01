@@ -3,7 +3,9 @@
 /// and the multi-signature/aggregated signature itself,
 /// which was aggregated from these validators' partial BLS signatures.
 /// ed25519指的是在Edwards椭圆曲线上的签名方案，这里应该是设计了一个多重签名方案
-#[derive(Clone, Debug, Eq, PartialEq)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EdSignature {
     // 用bitmask掩码来表示哪些validator签名了，哪些没签名
     validator_bitmask: BitVec,

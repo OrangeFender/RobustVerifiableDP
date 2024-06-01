@@ -2,10 +2,9 @@ use blstrs::{G1Projective, Scalar};
 
 use crate::sigma_or::ProofStruct;
 
+use serde::{Serialize, Deserialize};
 
-use serde::Serialize;
-
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ComsAndShare{
     pub coms:Vec<G1Projective>,
     pub share:Scalar,

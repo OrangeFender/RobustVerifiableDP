@@ -88,6 +88,10 @@ fn main(){
         }
     }
 
+    let bytes= bcs::to_bytes(&sigs_client_prover.clone()).unwrap();
+    //打印消息的长度
+    println!("{}*{} sigs length:{}",NUM_CLIENTS,NUM_PROVERS,bytes.len());
+
     //客户端验证签名
     for i in 0..NUM_PROVERS {
         let pk= sig_keys[i].public_key.clone();
