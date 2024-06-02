@@ -35,7 +35,7 @@ fn main(){
     let mut clients: Vec<Client> = Vec::new();
     for i in 0..NUM_CLIENTS {
         let random_bool = rand::random();
-        let client = Client::new(i,random_bool, &pp);
+        let client = Client::new(i as u64 ,random_bool, &pp);
         clients.push(client);
     }
 
@@ -65,7 +65,7 @@ fn main(){
     for i in 0..NUM_CLIENTS {
         for j in 0..NUM_PROVERS {
             let msg = &clientmsg[i][j];
-            let ret=provers[j].verify_share_and_sig(&msg.coms, &pp, msg.share, msg.pi);
+            let ret=provers[j].verify_msg_and_sig(msg, &pp);
             assert!(ret.is_some());
         }
     }

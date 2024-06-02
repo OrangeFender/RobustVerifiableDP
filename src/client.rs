@@ -11,7 +11,7 @@ use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::msg_structs::ComsAndShare;
 
 pub struct Client{
-    index: usize,
+    id: u64,
     x_int: usize,
     x_scalar: Scalar,
     r_poly: Vec<Scalar>,//commitment blinding factor's polynomial coefficients
@@ -22,7 +22,7 @@ pub struct Client{
 }
 
 impl Client{
-    pub fn new(index: usize, x: bool,pp:&PublicParameters) -> Self {
+    pub fn new(id: u64, x: bool,pp:&PublicParameters) -> Self {
         let x_int = if x {1} else {0};
         
         let x_scalar = Scalar::from(x_int as u64);
@@ -58,7 +58,7 @@ impl Client{
         }
 
         Self {
-            index,
+            id,
             x_int,
             x_scalar,
             r_poly,
@@ -120,6 +120,7 @@ impl Client{
         let coms=self.get_coms_f_x();
         let (f,r)=self.get_evals(proverind);
         ComsAndShare{
+            id:self.id,
             coms,
             share:f,
             pi:r,

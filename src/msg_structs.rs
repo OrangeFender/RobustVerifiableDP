@@ -6,6 +6,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ComsAndShare{
+    pub id:u64,
     pub coms:Vec<G1Projective>,
     pub share:Scalar,
     pub pi:Scalar,

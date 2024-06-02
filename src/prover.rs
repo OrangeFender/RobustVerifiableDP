@@ -99,7 +99,7 @@ impl Prover {
         }
     }
 
-    pub fn triple_check(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: &Scalar, r_i_k: &Scalar, sigma_or_struct:sigma_or::ProofStruct) -> bool {
+    pub fn triple_check(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: &Scalar, r_i_k: &Scalar, sigma_or_struct:&sigma_or::ProofStruct) -> bool {
         let commit_valid = pp.get_commit_base().vrfy(f_i_k.clone(), r_i_k.clone(), coms[self.index].clone());
         let deg_valid = low_deg_test(&coms, pp.get_threshold(), pp.get_prover_num());
         let reconcom=reconstruct_com(&coms, pp.get_threshold());
@@ -108,8 +108,9 @@ impl Prover {
     }
 
 
-    pub fn verify_msg_and_sig(&self,msg:msg_structs::ComsAndShare,pp:&PublicParameters)-> Option<Ed25519Signature>{
-        let result = Self::triple_check(&self, &msg.coms, &pp, &msg.share, &msg.pi, msg.proof);
+    pub fn verify_msg_and_sig(&self,msg:
+        &msg_structs::ComsAndShare,pp:&PublicParameters)-> Option<Ed25519Signature>{
+        let result = Self::triple_check(&self, &msg.coms, &pp, &msg.share, &msg.pi, &msg.proof);
         if result {
             Some(sign_verified_deal(&self.sig_key, &msg.coms))
         } else {
