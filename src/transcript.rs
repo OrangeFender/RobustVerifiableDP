@@ -2,6 +2,7 @@ use blstrs::{G1Projective, Scalar};
 
 use crate::commitment::Commit;
 use crate::sig::{EdSignature, verify_sig};
+use crate::sigma_or::ProofStruct;
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -14,24 +15,30 @@ pub struct TranscriptEd {
     /// Pedersen commitment randomness of those who did not sign
     randomness: Vec<Scalar>,
     /// Multisignature from the set of nodes who received valid shares
-    agg_sig : EdSignature,
+    //agg_sig : EdSignature,
 
-    sigs: Vec<Ed25519Signature>,
+    sigs: Vec<(Ed25519Signature,usize)>,
+
+    sigma_or_proof: ProofStruct,
 }
 
 impl TranscriptEd {
-    pub fn new(coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, agg_sig: EdSignature, sigs:Vec<Ed25519Signature> ) -> Self {
+    pub fn new(coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, sigs:Vec<(Ed25519Signature,usize)>, sigma_or_proof: ProofStruct) -> Self {
         Self {
             coms: coms,
             shares: shares,
             randomness: randomness,
-            agg_sig: agg_sig,
             sigs: sigs,
+            sigma_or_proof: sigma_or_proof,
         }
     }
 
     pub fn coms(&self) -> &Vec<G1Projective> {
         &self.coms
+    }
+
+    pub fn sigs(&self) -> &Vec<(Ed25519Signature,usize)> {
+        &self.sigs
     }
 
     pub fn shares(&self) -> &Vec<Scalar> {
@@ -42,9 +49,6 @@ impl TranscriptEd {
         &self.randomness
     }
 
-    pub fn agg_sig(&self) -> &EdSignature {
-        &self.agg_sig
-    }
 }
 
 use aptos_bitvec::BitVec;
@@ -81,7 +85,7 @@ use crate::util::random_scalars_range;
 // 这里将将原来的PolyComReceiver:self替换为了pv_share
 pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
  
-    let num_signed = t.agg_sig().get_num_voters();
+    let num_signed = t.sigs().len();
     let n = t.coms().len();
     let missing_ct = n-num_signed;
     let threshold= pp.get_threshold();
@@ -98,7 +102,6 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
 
     // Aggregate public key
 
-    let multi_pks=t.agg_sig.get_signers_addresses(pks);
 
     //let threshold=threshold.try_into().unwrap();
 
@@ -108,11 +111,17 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     //let msg = bcs::to_bytes(pv_share).unwrap();
     //assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
     //TODO目前还是用的普通签名
+    //长度为sigs.len()的boolvec，初值为false
+    let mut boolvec: Vec<bool> = vec![false; num_signed];
+
     for i in 0..num_signed {
-        let ret=verify_sig(&pv_share.clone(), &multi_pks[i], t.sigs[i].clone());
+        let (sig,id) = &t.sigs[i];
+        let ret=verify_sig(&pv_share.clone(), &pks[*id], sig.clone());
         //assert!(ret.is_ok());
         if ret==false{
             return false;
+        }else {
+            boolvec[i] = true;
         }
     }
 
@@ -126,7 +135,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     let mut s = Scalar::zero();
     let mut r = Scalar::zero();
     for pos in 0..n {
-        if !t.agg_sig().get_signers_bitvec().is_set(pos as u16) {
+        if boolvec[pos] == false{
             s += lambdas[idx]*t.shares()[idx];
             r += lambdas[idx]*t.randomness()[idx];
             

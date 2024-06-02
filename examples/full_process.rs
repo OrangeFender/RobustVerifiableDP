@@ -21,7 +21,7 @@ use rand::Rng;
 const N_B: usize = 10;
 const NUM_CLIENTS: usize = 15;
 const NUM_PROVERS: usize = 10;
-const THRESHOLD: usize = 4;
+const THRESHOLD: usize = 3;
 fn main(){
     // Create public parameters
     //生成公共参数
@@ -121,10 +121,10 @@ fn main(){
         let mut sigs = Vec::new();
         for j in 0..NUM_PROVERS {
             if valid_sigs[i][j] {
-                sigs.push(sigs_client_prover[i][j].clone().unwrap());
+                sigs.push((sigs_client_prover[i][j].clone().unwrap(), j));
             }
         }
-        let transcript = client.get_transcript(NUM_PROVERS, &valid_sigs[i], sigs);
+        let transcript = client.get_transcript(NUM_PROVERS, &valid_sigs[i], sigs);//此处新修改
         transcripts.push(transcript);
     }
 

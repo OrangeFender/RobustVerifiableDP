@@ -3,7 +3,6 @@ use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
 use crate::fft::fft;
-use crate::sig::aggregate_sig;
 use aptos_crypto::ed25519::{ Ed25519PublicKey, Ed25519Signature};
 use crate::transcript::TranscriptEd;
 use crate::sig::verify_sig;
@@ -19,6 +18,7 @@ pub struct Client{
     f_eval: Vec<Scalar>,//
     r_eval: Vec<Scalar>,//
     coms_f_x: Vec<G1Projective>,//
+    sigma_proof: ProofStruct,
 }
 
 impl Client{
@@ -57,6 +57,14 @@ impl Client{
             coms_f_x.push(pp.get_commit_base().commit(f_evals[i], r_evals[i]));
         }
 
+        let proof;
+        if x{
+            proof = create_proof_1(&pp.get_commit_base(), x_scalar.clone(), r_poly[0].clone());
+        }
+        else{
+            proof = create_proof_0(&pp.get_commit_base(), x_scalar.clone(), r_poly[0].clone());
+        }
+
         Self {
             id,
             x_int,
@@ -66,6 +74,7 @@ impl Client{
             f_eval: f_evals,
             r_eval: r_evals,
             coms_f_x,
+            sigma_proof: proof,
         }
     }
 
@@ -85,9 +94,9 @@ impl Client{
 
     // This function outputs the Mixed-VSS transcript. 
     // This function assumes that all signatures are valid
-    pub fn get_transcript(&self, num_prover:usize, signers: &Vec<bool>, sigs: Vec<Ed25519Signature>) -> TranscriptEd {
-        let agg_sig = aggregate_sig(signers.clone(), sigs.clone());
-        let missing_count = num_prover-agg_sig.get_num_voters();
+    pub fn get_transcript(&self, num_prover:usize, signers: &Vec<bool>, sigs: Vec<(Ed25519Signature,usize)>) -> TranscriptEd {
+        //let agg_sig = aggregate_sig(signers.clone(), sigs.clone());
+        let missing_count = num_prover-sigs.len();
 
         let mut shares = Vec::with_capacity(missing_count);
         let mut randomness = Vec::with_capacity(missing_count);
@@ -98,8 +107,7 @@ impl Client{
                 randomness.push(self.r_eval[i]);
             }
         }
-
-        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, agg_sig, sigs.clone())
+        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, sigs.clone(),self.sigma_proof.clone())
     }
 
     pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofStruct {
@@ -116,7 +124,7 @@ impl Client{
     }
 
     pub fn create_prover_msg(&self,pp: &PublicParameters,proverind:usize)->ComsAndShare{
-        let sigma_proof=self.create_sigma_proof(pp);
+        //let sigma_proof=self.create_sigma_proof(pp);
         let coms=self.get_coms_f_x();
         let (f,r)=self.get_evals(proverind);
         ComsAndShare{
@@ -124,8 +132,9 @@ impl Client{
             coms,
             share:f,
             pi:r,
-            proof:sigma_proof,
+            proof:self.sigma_proof.clone(),
         }
     }
 
 }
+
