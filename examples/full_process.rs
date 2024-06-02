@@ -136,7 +136,11 @@ fn main(){
         assert!(valid);  
     }
 
-
+    //测试序列化后的transcript------------------------------------
+    let bytes= bcs::to_bytes(&transcripts.clone()).unwrap();
+    println!("{}transcripts length:{}",NUM_CLIENTS,bytes.len());
+    //----------------------------------------------------------
+    
      // 对于通过验证的Clients, 生成simga_or proof
      let mut create_proofs: Vec<ProofStruct> = Vec::new();
      for i in 0..NUM_CLIENTS {
