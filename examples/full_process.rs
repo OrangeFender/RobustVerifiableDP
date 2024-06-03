@@ -69,7 +69,7 @@ fn main(){
             let msg = &clientmsg[i][j];
             let ret=provers[j].verify_msg_and_sig(msg, &pp);
             assert!(ret.is_some());
-            sigs_client_prover[j][i] = ret;
+            sigs_client_prover[i][j] = ret;
         }
     }
 
@@ -144,37 +144,37 @@ fn main(){
     println!("{}transcripts length:{}",NUM_CLIENTS,bytes.len());
     //----------------------------------------------------------
     
-     // 对于通过验证的Clients, 生成simga_or proof
-     let mut create_proofs: Vec<ProofStruct> = Vec::new();
-     for i in 0..NUM_CLIENTS {
-         let client = &clients[i];
-         let create_proof = client.create_sigma_proof(&pp);
-         create_proofs.push(create_proof);
-     }
+    //  // 对于通过验证的Clients, 生成simga_or proof
+    //  let mut create_proofs: Vec<ProofStruct> = Vec::new();
+    //  for i in 0..NUM_CLIENTS {
+    //      let client = &clients[i];
+    //      let create_proof = client.create_sigma_proof(&pp);
+    //      create_proofs.push(create_proof);
+    //  }
  
-     // 对于每个Provers来说, 需要首先重构出ci
-     let mut com_recons: Vec<G1Projective> = Vec::new();
-     // 通过验证后直接选取Prover的前t+1个commit重构，因为已经验证过Client秘密分享的安全性了
-     let players: Vec<usize> = (0..NUM_PROVERS)
-     .take(THRESHOLD)
-     .collect::<Vec<usize>>();
+    //  // 对于每个Provers来说, 需要首先重构出ci
+    //  let mut com_recons: Vec<G1Projective> = Vec::new();
+    //  // 通过验证后直接选取Prover的前t+1个commit重构，因为已经验证过Client秘密分享的安全性了
+    //  let players: Vec<usize> = (0..NUM_PROVERS)
+    //  .take(THRESHOLD)
+    //  .collect::<Vec<usize>>();
  
-     for i in 0..NUM_CLIENTS {
-         let com_recon = reconstruct_com(&clients[i].get_coms_f_x(),  NUM_PROVERS);
-         com_recons.push(com_recon);
-     }
+    //  for i in 0..NUM_CLIENTS {
+    //      let com_recon = reconstruct_com(&clients[i].get_coms_f_x(),  NUM_PROVERS);
+    //      com_recons.push(com_recon);
+    //  }
      
-     // Provers重构出ci之后, 所有的prover对ci做验证
-     // let mut vrfy_recon_com: Vec<bool> = Vec::new();
-     // Provers在验证的时候，commit需要利用自己重构出的commit来验证
-    for i in 0..NUM_CLIENTS {
-            let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i], com_recons[i].clone());
-            assert!(valid);
-            for j in 0..NUM_PROVERS {
-                let (f,r)=clients[i].get_evals(j);
-                provers[j].input_shares(f,r);
-            }
-    }
+    //  // Provers重构出ci之后, 所有的prover对ci做验证
+    //  // let mut vrfy_recon_com: Vec<bool> = Vec::new();
+    //  // Provers在验证的时候，commit需要利用自己重构出的commit来验证
+    // for i in 0..NUM_CLIENTS {
+    //         let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i], com_recons[i].clone());
+    //         assert!(valid);
+    //         for j in 0..NUM_PROVERS {
+    //             let (f,r)=clients[i].get_evals(j);
+    //             provers[j].input_shares(f,r);
+    //         }
+    // }
 
     //计算哈希值
     let mut all_commitments: Vec<Vec<G1Projective>> = Vec::new();

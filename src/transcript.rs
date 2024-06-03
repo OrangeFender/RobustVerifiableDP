@@ -100,7 +100,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
         return false;
     }
     
-    let xs = (0..n).map(|i| Scalar::from(i as u64)).collect::<Vec<_>>();
+    let xs = (1..=n).map(|i| Scalar::from(i as u64)).collect::<Vec<_>>();
 
     let reconcom = shamirlib::recon_com(pv_share, &xs);
     // check the sigma_or_proof
@@ -121,7 +121,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     //assert!(t.agg_sig().verify(msg.as_slice(), &agg_pk));
     //TODO目前还是用的普通签名
     //长度为sigs.len()的boolvec，初值为false
-    let mut boolvec: Vec<bool> = vec![false; num_signed];
+    let mut boolvec: Vec<bool> = vec![false; pp.get_prover_num()];
 
     for i in 0..num_signed {
         let (sig,id) = &t.sigs[i];
@@ -130,7 +130,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
         if ret==false{
             return false;
         }else {
-            boolvec[i] = true;
+            boolvec[*id] = true;
         }
     }
 
