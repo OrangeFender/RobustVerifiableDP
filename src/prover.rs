@@ -8,7 +8,7 @@ use crate::public_parameters::PublicParameters;
 use crate::{msg_structs, sigma_or, util};
 use crate::sig::sign_verified_deal;
 use crate::low_deg::low_deg_test;
-use crate::recon::reconstruct_com;
+use crate::shamirlib;
 
 pub struct Prover {
     index: usize,
@@ -101,8 +101,9 @@ impl Prover {
 
     pub fn triple_check(&self, coms: &Vec<G1Projective>, pp:&PublicParameters, f_i_k: &Scalar, r_i_k: &Scalar, sigma_or_struct:&sigma_or::ProofStruct) -> bool {
         let commit_valid = pp.get_commit_base().vrfy(f_i_k.clone(), r_i_k.clone(), coms[self.index].clone());
-        let deg_valid = low_deg_test(&coms, pp.get_threshold(), pp.get_prover_num());
-        let reconcom=reconstruct_com(&coms, pp.get_threshold());
+        let deg_valid = shamirlib::low_degree_test(&coms, pp.get_threshold());
+        let xs:Vec<Scalar> = (1..=(pp.get_threshold()+1)).map(|x| Scalar::from(x as u64)).collect();
+        let reconcom=shamirlib::recon_com(&coms, &xs);
         let sigma_or_valid = sigma_or::sigma_or_verify( pp.get_commit_base(),&sigma_or_struct, reconcom);
         commit_valid && deg_valid && sigma_or_valid
     }

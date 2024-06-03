@@ -62,11 +62,14 @@ fn main(){
     }
     
     //----------------新测试的内容----------------
+    let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
+
     for i in 0..NUM_CLIENTS {
         for j in 0..NUM_PROVERS {
             let msg = &clientmsg[i][j];
             let ret=provers[j].verify_msg_and_sig(msg, &pp);
             assert!(ret.is_some());
+            sigs_client_prover[j][i] = ret;
         }
     }
 
@@ -74,19 +77,19 @@ fn main(){
 
     //二维数组，sigs[i][j]表示第i个prover对第j个client的签名
     // prover验证私人秘密
-    let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
+    // let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
 
-    for i in 0..NUM_PROVERS {
-        let prover = &provers[i];
-        for j in 0..NUM_CLIENTS {
-            let client = &clients[j];
-            let coms_f_x = client.get_coms_f_x();
-            let (f_eval , r_eval) = client.get_evals(i);
-            let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
-            assert!(ret.is_some());
-            sigs_client_prover[j][i] = ret;
-        }
-    }
+    // for i in 0..NUM_PROVERS {
+    //     let prover = &provers[i];
+    //     for j in 0..NUM_CLIENTS {
+    //         let client = &clients[j];
+    //         let coms_f_x = client.get_coms_f_x();
+    //         let (f_eval , r_eval) = client.get_evals(i);
+    //         let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
+    //         assert!(ret.is_some());
+    //         sigs_client_prover[j][i] = ret;
+    //     }
+    // }
 
     let bytes= bcs::to_bytes(&sigs_client_prover.clone()).unwrap();
     //打印消息的长度

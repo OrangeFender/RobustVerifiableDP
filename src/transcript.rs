@@ -68,7 +68,7 @@ use crate::sig::aggregate_sig;
 use crate::low_deg::low_deg_test;  // 待实现
 use crate::public_parameters::PublicParameters;
 use crate::util::random_scalars_range;
-
+use crate::shamirlib;
 
 
 // // Prover 收到transcript后进行验证
@@ -90,7 +90,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     let missing_ct = n-num_signed;
     let threshold= pp.get_threshold();
     // Checking low-degree of the committed polynomial
-    if low_deg_test(t.coms(), threshold, pp.get_prover_num())==false{
+    if shamirlib::low_degree_test(t.coms(), threshold)==false{
         return false;
     }
     if t.shares().len() != missing_ct {

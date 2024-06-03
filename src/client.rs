@@ -8,6 +8,7 @@ use crate::transcript::TranscriptEd;
 use crate::sig::verify_sig;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::msg_structs::ComsAndShare;
+use crate::shamirlib;
 
 pub struct Client{
     id: u64,
@@ -39,17 +40,13 @@ impl Client{
         //     f_poly.push(util::random_scalar(&mut rng));
         // }
 
-        let r_poly = util::random_scalars(t, &mut rng);
-        let mut f_poly = util::random_scalars(t, &mut rng);
+        let r_poly = util::random_scalars(t+1, &mut rng);
+        let mut f_poly = util::random_scalars(t+1, &mut rng);
 
         f_poly[0] = x_scalar;
 
-        let mut f_evals = fft(&f_poly, pp.get_dom());
-        f_evals.truncate(pp.get_prover_num());
-
-        let mut r_evals = fft(&r_poly, pp.get_dom());
-        r_evals.truncate(pp.get_prover_num());
-        //注意这里的eval都是从x=1开始的
+        let mut f_evals = shamirlib::eval_poly_at_1_n(&f_poly, pp.get_prover_num());
+        let mut r_evals = shamirlib::eval_poly_at_1_n(&r_poly, pp.get_prover_num());
 
         let mut coms_f_x = Vec::new();
 
