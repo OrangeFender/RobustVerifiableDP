@@ -153,3 +153,9 @@ pub fn sigma_or_verify(commit_base: &CommitBase, pf_scalar: &ProofStruct, reconc
 
     return true;
 }
+
+impl ProofStruct{
+    pub fn verify(&self, commit_base: &CommitBase, reconcom:G1Projective) -> bool {
+        sigma_or_verify(commit_base, self, reconcom)
+    }
+}

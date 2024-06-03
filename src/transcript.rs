@@ -89,16 +89,25 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     let n = t.coms().len();
     let missing_ct = n-num_signed;
     let threshold= pp.get_threshold();
-    // Checking low-degree of the committed polynomial
-    if shamirlib::low_degree_test(t.coms(), threshold)==false{
-        return false;
-    }
     if t.shares().len() != missing_ct {
         return false;
     }
     if t.randomness().len() != missing_ct {
         return false;
     }
+    // Checking low-degree of the committed polynomial
+    if shamirlib::low_degree_test(t.coms(), threshold)==false{
+        return false;
+    }
+    
+    let xs = (0..n).map(|i| Scalar::from(i as u64)).collect::<Vec<_>>();
+
+    let reconcom = shamirlib::recon_com(pv_share, &xs);
+    // check the sigma_or_proof
+    if t.sigma_or_proof.verify(pp.get_commit_base(),reconcom)==false{
+        return false;
+    }
+    
 
     // Aggregate public key
 
@@ -154,4 +163,10 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     
     com_pos == com
 
+}
+
+impl TranscriptEd{
+    pub fn verify(&self, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>, pv_share: &Vec<G1Projective>) -> bool {
+        verify_transcript(pv_share, self, pp, pks)
+    }
 }
