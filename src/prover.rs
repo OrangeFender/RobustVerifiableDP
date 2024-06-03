@@ -20,7 +20,6 @@ pub struct Prover {
     //coms_v_k_xor: Vec<G1Projective>,
     // ============================================================
     pub(crate) sig_key: Ed25519PrivateKey,
-    pub(crate) vrfy_key: Ed25519PublicKey,
     // ============================================================
     // shares_coms: Vec<G1Projective>,
     share_f_i_k: Vec<Scalar>,//长度是Client的数量
@@ -29,7 +28,7 @@ pub struct Prover {
 }
 
 impl Prover {
-    pub fn new(index:usize, bool_vector:Vec<bool>, s_blinding:Vec<Scalar>, pp:&PublicParameters, sig_key:Ed25519PrivateKey, vrfy_key:Ed25519PublicKey) -> Self {
+    pub fn new(index:usize, bool_vector:Vec<bool>, s_blinding:Vec<Scalar>, pp:&PublicParameters, sig_key:Ed25519PrivateKey) -> Self {
         // Generate a random bit vector of length `n_b'`
         let length = pp.get_n_b();
         let mut rng = rand::thread_rng();
@@ -64,7 +63,6 @@ impl Prover {
             //coms_v_k_xor: Vec::new(),
             // shares_coms,
             sig_key,
-            vrfy_key,
             share_f_i_k,
             share_r_i_k,
             valid_shares,

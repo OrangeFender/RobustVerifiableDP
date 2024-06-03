@@ -60,7 +60,7 @@ fn main(){
         let mut rng = rand::thread_rng();
         let boolvec=(0..pp.get_n_b()).map(|_| rng.gen_bool(0.5)).collect();
         let s=util::random_scalars(pp.get_n_b(), &mut rng);
-        let prover = Prover::new(i,boolvec,s,&pp,sig_keys[i].private_key.clone(), sig_keys[i].public_key.clone());
+        let prover = Prover::new(i,boolvec,s,&pp,sig_keys[i].private_key.clone());
         provers.push(prover);
         pks.push(sig_keys[i].public_key.clone());
     }
