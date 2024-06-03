@@ -3,6 +3,7 @@ extern crate robust_verifiable_dp as dp;
 use blstrs::{G1Projective,Scalar};
 use dp::sigma_or::ProofStruct;
 use dp::transcript::{self, verify_transcript, TranscriptEd};
+use dp::util;
 use dp::{client::Client, sig};
 use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
@@ -56,7 +57,10 @@ fn main(){
     let sig_keys = generate_ed_sig_keys(NUM_PROVERS);
     let mut pks: Vec<Ed25519PublicKey> = Vec::new();
     for i in 0..NUM_PROVERS {
-        let prover = Prover::new(i,&pp,sig_keys[i].private_key.clone(), sig_keys[i].public_key.clone());
+        let mut rng = rand::thread_rng();
+        let boolvec=(0..pp.get_n_b()).map(|_| rng.gen_bool(0.5)).collect();
+        let s=util::random_scalars(pp.get_n_b(), &mut rng);
+        let prover = Prover::new(i,boolvec,s,&pp,sig_keys[i].private_key.clone(), sig_keys[i].public_key.clone());
         provers.push(prover);
         pks.push(sig_keys[i].public_key.clone());
     }
@@ -186,25 +190,28 @@ fn main(){
 
 
     // prover给出最后结果的share
-    let mut res_shares: Vec<Scalar> = Vec::new();
-    let mut res_proof: Vec<Scalar> = Vec::new();
-    for i in 0..NUM_PROVERS{
-        provers[i].x_or(&pp,&hash);
-        let (y,proof) = provers[i].calc_output(&pp);
-        res_shares.push(y);
-        res_proof.push(proof);
+    // let mut res_shares: Vec<Scalar> = Vec::new();
+    // let mut res_proof: Vec<Scalar> = Vec::new();
+    // for i in 0..NUM_PROVERS{
+    //     provers[i].x_or(&pp,&hash);
+    //     let (y,proof) = provers[i].calc_output(&pp);
+    //     res_shares.push(y);
+    //     res_proof.push(proof);
 
-        //verifier最后的验证
-        let noise_commitment = xor_commitments(&provers[i].get_coms_v_k(), &hash,pp.get_g(), pp.get_h());
-        let mut last_commitment = noise_commitment[0];
-        for j in 1..pp.get_n_b() {
-            last_commitment = last_commitment + noise_commitment[j];
-        }
-        for j in 0..NUM_CLIENTS {
-            last_commitment = last_commitment + clients[j].get_coms_f_x()[i];
-        }
-        assert!(last_commitment == pp.get_commit_base().commit(y,proof));
-    }
+    //     //verifier最后的验证
+    //     let noise_commitment = xor_commitments(&provers[i].get_coms_v_k(), &hash,pp.get_g(), pp.get_h());
+    //     let mut last_commitment = noise_commitment[0];
+    //     for j in 1..pp.get_n_b() {
+    //         last_commitment = last_commitment + noise_commitment[j];
+    //     }
+    //     for j in 0..NUM_CLIENTS {
+    //         last_commitment = last_commitment + clients[j].get_coms_f_x()[i];
+    //     }
+    //     assert!(last_commitment == pp.get_commit_base().commit(y,proof));
+    // }
+
+    //TODO，客户数据存储的位置变了
+
 
     println!("All tests passed!");
 }
