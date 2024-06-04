@@ -89,7 +89,7 @@ use crate::shamirlib;
 
 // Prover 验证transcript
 // 这里将将原来的PolyComReceiver:self替换为了pv_share
-pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
+pub fn verify_transcript(t: &TranscriptEd, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>) -> bool {
  
     let num_signed = t.sigs().len();
     let n = t.coms().len();
@@ -108,7 +108,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
     
     let xs = (1..=n).map(|i| Scalar::from(i as u64)).collect::<Vec<_>>();
 
-    let reconcom = shamirlib::recon_com(pv_share, &xs);
+    let reconcom = shamirlib::recon_com(&t.coms, &xs);
     // check the sigma_or_proof
     if t.sigma_or_proof.verify(pp.get_commit_base(),reconcom)==false{
         return false;
@@ -131,7 +131,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
 
     for i in 0..num_signed {
         let (sig,id) = &t.sigs[i];
-        let ret=verify_sig(&pv_share.clone(), &pks[*id], sig.clone());
+        let ret=verify_sig(&t.coms.clone(), &pks[*id], sig.clone());
         //assert!(ret.is_ok());
         if ret==false{
             return false;
@@ -155,7 +155,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
             r += lambdas[idx]*t.randomness()[idx];
             
             idx +=1;
-            missing_coms.push(pv_share[pos]);
+            missing_coms.push(t.coms[pos]);
         }
     }
 
@@ -172,7 +172,7 @@ pub fn verify_transcript(pv_share:&Vec<G1Projective>, t: &TranscriptEd, pp: &Pub
 }
 
 impl TranscriptEd{
-    pub fn verify(&self, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>, pv_share: &Vec<G1Projective>) -> bool {
-        verify_transcript(pv_share, self, pp, pks)
+    pub fn verify(&self, pp: &PublicParameters, pks: &Vec<Ed25519PublicKey>, ) -> bool {
+        verify_transcript( self, pp, pks)
     }
 }
