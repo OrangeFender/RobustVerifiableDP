@@ -35,6 +35,10 @@ impl TranscriptEd {
         }
     }
 
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
     pub fn coms(&self) -> &Vec<G1Projective> {
         &self.coms
     }
