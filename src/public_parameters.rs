@@ -13,7 +13,6 @@ pub struct PublicParameters {
 
 impl PublicParameters {
     pub fn new(n_b: usize,prover_num: usize, threshold: usize , seed: &[u8]) -> Self {
-        let dom = batch_dom.get_subdomain(prover_num);
         Self {
             n_b,
             prover_num,
@@ -32,14 +31,6 @@ impl PublicParameters {
     
     pub fn get_threshold(&self) -> usize {
         self.threshold
-    }
-
-    pub fn get_batch_dom(&self) -> &BatchEvaluationDomain {
-        &self.batch_dom
-    }
-
-    pub fn get_dom(&self) -> &EvaluationDomain {
-        &self.dom
     }
 
     pub fn get_commit_base(&self) -> &CommitBase {
