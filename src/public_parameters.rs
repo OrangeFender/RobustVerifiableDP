@@ -7,7 +7,6 @@ pub struct PublicParameters {
     n_b: usize,
     prover_num: usize,
     threshold: usize,
-    dom: EvaluationDomain,
     commit_base: CommitBase,
 
 }
@@ -19,7 +18,6 @@ impl PublicParameters {
             n_b,
             prover_num,
             threshold,
-            dom,
             commit_base: CommitBase::new(seed),
         }
     }
