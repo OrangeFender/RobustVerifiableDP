@@ -21,7 +21,13 @@ fn hash_coms(coms: &Vec<Vec<G1Projective>>,nb:usize) -> u64 {//hash the vector o
     calculate_hash(&concatenated)& ((1 << nb) - 1)//return the last nb bits
 }
 
+pub fn hash_T_to_bit_array<T: Hash>(input: T, nb: usize) -> Vec<bool> {
+    let hash = calculate_hash(&input);
 
+    let bits: Vec<bool> = (0..64).rev().map(|i| ((hash >> i) & 1) != 0).collect();
+
+    bits.into_iter().take(nb).collect()
+}
 
 fn convert_to_bit_array(hash: u64, nb: usize) -> Vec<bool> {//convert hash to binary and then to scalar bit array(nb bits)
     let mut result: Vec<bool> = Vec::new();
