@@ -10,6 +10,7 @@ use crate::sig::sign_verified_deal;
 use crate::low_deg::low_deg_test;
 use crate::shamirlib;
 
+#[derive(Clone)]
 pub struct Prover {
     index: usize,
     bit_vector: Vec<Scalar>, //随机比特向量
