@@ -7,7 +7,6 @@ pub struct PublicParameters {
     n_b: usize,
     prover_num: usize,
     threshold: usize,
-    batch_dom: BatchEvaluationDomain,
     dom: EvaluationDomain,
     commit_base: CommitBase,
 
@@ -15,13 +14,11 @@ pub struct PublicParameters {
 
 impl PublicParameters {
     pub fn new(n_b: usize,prover_num: usize, threshold: usize , seed: &[u8]) -> Self {
-        let batch_dom = BatchEvaluationDomain::new(prover_num);
         let dom = batch_dom.get_subdomain(prover_num);
         Self {
             n_b,
             prover_num,
             threshold,
-            batch_dom,
             dom,
             commit_base: CommitBase::new(seed),
         }
