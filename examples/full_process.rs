@@ -139,7 +139,7 @@ fn main(){
     for i in 0..NUM_CLIENTS {
         let client = &clients[i];
         let transcript = &transcripts[i];
-        let valid = verify_transcript(&client.get_coms_f_x(), transcript, &pp, &pks);
+        let valid = verify_transcript( transcript, &pp, &pks);
         assert!(valid);  
     }
 
