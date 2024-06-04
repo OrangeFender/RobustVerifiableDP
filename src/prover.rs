@@ -1,5 +1,6 @@
 // ============================================================
 use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
+use aptos_crypto::x25519::x25519_dalek::SharedSecret;
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
 
@@ -142,6 +143,20 @@ impl Prover {
         for i in 0..self.share_f_i_k.len() {
             res=res+&self.share_f_i_k[i].clone();
             proof=proof+&self.share_r_i_k[i].clone();
+        }
+        (res,proof)
+    }
+
+    pub fn calc_output_with_share(&self, pp:&PublicParameters, share:Vec<(Scalar,Scalar)>) -> (Scalar,Scalar) {
+        let mut res=Scalar::zero();
+        let mut proof = Scalar::zero();
+        for i in 0..pp.get_n_b() {
+            res=res+&self.bit_vector_xor[i].clone();
+            proof=proof+&self.s_blinding_xor[i].clone();
+        }
+        for (f,r) in share {
+            res=res+&f;
+            proof=proof+&r;
         }
         (res,proof)
     }
