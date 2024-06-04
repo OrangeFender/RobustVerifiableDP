@@ -2,7 +2,7 @@ use crate::commitment::CommitBase;
 use crate::evaluation_domain::{BatchEvaluationDomain, EvaluationDomain};
 use blstrs::G1Projective;
 
-
+#[derive(Clone)]
 pub struct PublicParameters {
     n_b: usize,
     prover_num: usize,
