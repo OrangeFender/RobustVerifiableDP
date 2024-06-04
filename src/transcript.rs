@@ -8,6 +8,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct TranscriptEd {
+    id: u64,
     /// Pedersen commitment to the polynomial
     coms: Vec<G1Projective>,
     /// Shares of those who did not sign
@@ -23,8 +24,9 @@ pub struct TranscriptEd {
 }
 
 impl TranscriptEd {
-    pub fn new(coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, sigs:Vec<(Ed25519Signature,usize)>, sigma_or_proof: ProofStruct) -> Self {
+    pub fn new(id:u64, coms:Vec<G1Projective>, shares:Vec<Scalar>, randomness:Vec<Scalar>, sigs:Vec<(Ed25519Signature,usize)>, sigma_or_proof: ProofStruct) -> Self {
         Self {
+            id: id,
             coms: coms,
             shares: shares,
             randomness: randomness,

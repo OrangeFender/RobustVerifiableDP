@@ -104,7 +104,7 @@ impl Client{
                 randomness.push(self.r_eval[i]);
             }
         }
-        TranscriptEd::new(self.coms_f_x.clone(), shares, randomness, sigs.clone(),self.sigma_proof.clone())
+        TranscriptEd::new(self.id,self.coms_f_x.clone(), shares, randomness, sigs.clone(),self.sigma_proof.clone())
     }
 
     pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofStruct {
