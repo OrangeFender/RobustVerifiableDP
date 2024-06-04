@@ -2,6 +2,8 @@ use blstrs::{G1Projective, Scalar};
 use group::Group;
 use crate::DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION;
 
+
+#[derive(Clone)]
 pub struct CommitBase{
     pub bases: [G1Projective; 2],
 }
