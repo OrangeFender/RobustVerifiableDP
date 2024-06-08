@@ -1,3 +1,5 @@
+*.dpfile
 /target
 /build
 /Cargo.lock
+settings.json
