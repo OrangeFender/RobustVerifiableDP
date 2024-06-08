@@ -27,9 +27,8 @@ fn main(){
     let mut pks = Vec::new();
     let mut sks = Vec::new();
     for i in 0..NUM_PROVERS {
-        let (sk,pk)=keys[i];
-        pks.push(pk);
-        sks.push(sk);
+        pks.push(keys[i].public_key.clone());
+        sks.push(keys[i].private_key.clone());
     }
     //将pks整体使用bcs库序列化到文件中
     let pk_bytes = bcs::to_bytes(&pks).unwrap();
@@ -37,7 +36,7 @@ fn main(){
     pk_file.write_all(&pk_bytes).unwrap();
     //将sks的每个元素使用bcs库序列化到文件中，并标号
     for i in 0..NUM_PROVERS {
-        let sk_bytes = sks[i];
+        let sk_bytes = bcs::to_bytes(&sks[i].clone()).unwrap();
         let mut sk_file = std::fs::File::create(format!("sk{}.dpfile",i)).unwrap();
         sk_file.write_all(&sk_bytes).unwrap();
     }
@@ -53,7 +52,7 @@ fn main(){
             boolvecvec.push(boolvec.clone());
             let Scalarvec = util::random_scalars(N_B, &mut rng);
             Scalarvecvec.push(Scalarvec.clone());
-            let prover = Prover::new(i,boolvec,Scalarvec,&pp,keys[i].0.clone());
+            let prover = Prover::new(i,boolvec,Scalarvec,&pp,keys[i].private_key.clone());
             comsvecvec.push(prover.get_coms_v_k().clone());
         }
         //将boolvecvec整体使用bcs库序列化到文件中
