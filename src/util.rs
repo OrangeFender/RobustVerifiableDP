@@ -11,7 +11,6 @@ use sha3::Digest;
 use hex;
 use rand::distributions::{Uniform, Distribution};
 
-use crate::error::CryptographicError;
 
 
 
@@ -41,22 +40,7 @@ pub fn is_power_of_two(n: usize) -> bool {
     n != 0 && (n & (n - 1) == 0)
 }
 
-/// Helper method to *securely* parse a sequence of bytes into a `G1Projective` point.
-/// NOTE: This function will check for prime-order subgroup membership in $\mathbb{G}_1$.
-pub fn g1_proj_from_bytes(bytes: &[u8]) -> Result<G1Projective, CryptographicError> {
-    let slice = match <&[u8; G1_PROJ_NUM_BYTES]>::try_from(bytes) {
-        Ok(slice) => slice,
-        Err(_) => return Err(CryptographicError::new("Invalid length for cryptographic operation")),
-    };
 
-    let a = G1Projective::from_compressed(slice);
-
-    if a.is_some().unwrap_u8() == 1u8 {
-        Ok(a.unwrap())
-    } else {
-        Err(CryptographicError::new("Invalid compressed G1 point"))
-    }
-}
 
 // TODO(rand_core_hell): Remove this once rand_core_hell is fixed.
 /// Returns the order of the scalar field in our implementation's choice of an elliptic curve group.
@@ -303,4 +287,12 @@ pub fn random_scalars_range<R>(mut rng: &mut R, u: u64, n: usize) -> Vec<Scalar>
         v.push(random_scalar_range(&mut rng, u));
     }
     v
+}
+
+pub fn factorial(n: usize) -> usize {
+    (1..=n).product()
+}
+
+pub fn combination(n: usize, k: usize) -> usize {
+    factorial(n) / (factorial(k) * factorial(n - k))
 }

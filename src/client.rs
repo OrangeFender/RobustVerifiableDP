@@ -1,135 +1,102 @@
+use std::result;
+
 use blstrs::{G1Projective, Scalar};
+use ed25519_dalek::{Signature,PublicKey};
+use crate::sign;
+use crate::sign::mySignature;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::util;
-use crate::fft::fft;
-use aptos_crypto::ed25519::{ Ed25519PublicKey, Ed25519Signature};
-use crate::transcript::TranscriptEd;
-use crate::sig::verify_sig;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
-use crate::msg_structs::ComsAndShare;
-use crate::shamirlib;
+use crate::msg_structs::{ShareProof, Transcript, SigOrShare};
+use crate::replicated::ReplicaSecret;
+use crate::constants;
 
 pub struct Client{
+    x:bool,
     id: u64,
-    x_int: usize,
-    x_scalar: Scalar,
-    r_poly: Vec<Scalar>,//commitment blinding factor's polynomial coefficients
-    f_poly: Vec<Scalar>,//polynomial coefficients
-    f_eval: Vec<Scalar>,//
-    r_eval: Vec<Scalar>,//
-    coms_f_x: Vec<G1Projective>,//
+    secret: ReplicaSecret,
+    coms: Vec<G1Projective>,
     sigma_proof: ProofStruct,
+
+    pks: [PublicKey;constants::PROVER_NUM],
+    signatures_and_id: Vec<(mySignature,usize)>
 }
 
 impl Client{
-    pub fn new(id: u64, x: bool,pp:&PublicParameters) -> Self {
-        let x_int = if x {1} else {0};
-        
-        let x_scalar = Scalar::from(x_int as u64);
-
-        
-        let t = pp.get_threshold();
-        let mut rng = rand::thread_rng();
-
-        // let mut r_poly = Vec::new();
-        // let mut f_poly = Vec::new();
-        // for _ in 0..t {
-        //     //random generation of r_blinding and f_poly
-        //     r_poly.push(util::random_scalar(&mut rng));
-        //     f_poly.push(util::random_scalar(&mut rng));
-        // }
-
-        let r_poly = util::random_scalars(t+1, &mut rng);
-        let mut f_poly = util::random_scalars(t+1, &mut rng);
-
-        f_poly[0] = x_scalar;
-
-        let mut f_evals = shamirlib::eval_poly_at_1_n(&f_poly, pp.get_prover_num());
-        let mut r_evals = shamirlib::eval_poly_at_1_n(&r_poly, pp.get_prover_num());
-
-        let mut coms_f_x = Vec::new();
-
-        for i in 0..pp.get_prover_num() {
-            coms_f_x.push(pp.get_commit_base().commit(f_evals[i], r_evals[i]));
-        }
-
+    pub fn new(id: u64, x: bool,pp:&PublicParameters,pks: [PublicKey;constants::PROVER_NUM]) -> Self {
+        let x_scalar = Scalar::from(x as u64);
+        let secret=ReplicaSecret::new(x_scalar.clone());
+        let r_sum=secret.get_sum_r();
+        let coms=secret.commit(pp.get_commit_base().clone());
         let proof;
         if x{
-            proof = create_proof_1(&pp.get_commit_base(), x_scalar.clone(), r_poly[0].clone());
+            proof = create_proof_1(&pp.get_commit_base(), x_scalar.clone(), r_sum.clone());
         }
         else{
-            proof = create_proof_0(&pp.get_commit_base(), x_scalar.clone(), r_poly[0].clone());
+            proof = create_proof_0(&pp.get_commit_base(), x_scalar.clone(), r_sum.clone());
         }
 
         Self {
+            x,
             id,
-            x_int,
-            x_scalar,
-            r_poly,
-            f_poly,
-            f_eval: f_evals,
-            r_eval: r_evals,
-            coms_f_x,
+            secret,
+            coms,
             sigma_proof: proof,
+            pks,
+            signatures_and_id:Vec::new()
         }
     }
 
-    pub fn get_coms_f_x(&self) -> Vec<G1Projective> {
-        self.coms_f_x.clone()
-    }
-
-    pub fn get_evals(&self, ind:usize) -> (Scalar, Scalar) {
-        (self.f_eval[ind].clone(), self.r_eval[ind].clone())
+    pub fn get_coms(&self) -> Vec<G1Projective> {
+        self.coms.clone()
     }
 
 
-
-    pub fn vrfy_sig(&self, pk: &Ed25519PublicKey, sig: &Ed25519Signature) -> bool {
-        verify_sig(&self.coms_f_x, pk, sig.clone())
-    }
-
-    // This function outputs the Mixed-VSS transcript. 
-    // This function assumes that all signatures are valid
-    pub fn get_transcript(&self, num_prover:usize, signers: &Vec<bool>, sigs: Vec<(Ed25519Signature,usize)>) -> TranscriptEd {
-        //let agg_sig = aggregate_sig(signers.clone(), sigs.clone());
-        let missing_count = num_prover-sigs.len();
-
-        let mut shares = Vec::with_capacity(missing_count);
-        let mut randomness = Vec::with_capacity(missing_count);
-
-        for (i, &is_set) in signers.iter().enumerate() {
-            if !is_set {
-                shares.push(self.f_eval[i]);
-                randomness.push(self.r_eval[i]);
+    pub fn verify_sig_and_add(&mut self, sig: Signature, proverid:usize) -> bool {
+        if sign::verify_sig(&self.coms, &self.pks[proverid], sig){
+            
+            if self.signatures_and_id.iter().any(|(_, id)| *id == proverid) {
+                self.signatures_and_id.iter_mut().for_each(|(s, id)| {
+                    if *id == proverid {
+                        *s = sig.into();
+                        *id = proverid;
+                    }
+                });
+            } else {
+                self.signatures_and_id.push((sig.into(), proverid));
             }
-        }
-        TranscriptEd::new(self.id,self.coms_f_x.clone(), shares, randomness, sigs.clone(),self.sigma_proof.clone())
-    }
-
-    pub fn create_sigma_proof(&self, pp: &PublicParameters) -> ProofStruct {
-        let create_proof;
-        // 这里应该能改成pub吧，因为在实际实现的时候这个地方是由Client自己去调用自己的x_int.
-        if self.x_int == 0 {
-            create_proof = create_proof_0(&pp.get_commit_base(), self.x_scalar, self.r_poly[0]);
+            return true;
         }
         else {
-            create_proof = create_proof_1(&pp.get_commit_base(), self.x_scalar, self.r_poly[0]);
+            return false;
         }
-        
-        create_proof
     }
 
-    pub fn create_prover_msg(&self,pp: &PublicParameters,proverind:usize)->ComsAndShare{
-        //let sigma_proof=self.create_sigma_proof(pp);
-        let coms=self.get_coms_f_x();
-        let (f,r)=self.get_evals(proverind);
-        ComsAndShare{
-            id:self.id,
+    pub fn gen_transcript(&self) -> Transcript{
+        let mut sigs_and_shares = Vec::with_capacity(constants::PROVER_NUM);
+        for i in 0..constants::PROVER_NUM {
+            if let Some((sig, _)) = self.signatures_and_id.iter().find(|(_, id)| *id == i) {
+                sigs_and_shares.push(SigOrShare::Signature(sig.clone()));
+            } else {
+                sigs_and_shares.push(SigOrShare::Share(self.secret.get_share(i)));
+            }
+            
+        }
+
+        Transcript::new(self.id, self.coms.clone(), sigs_and_shares, self.sigma_proof.clone())
+    }
+
+
+    
+    pub fn create_prover_msg(&self,proverind:usize)->ShareProof{
+        let coms=self.coms.clone();
+        let share = self.secret.get_share(proverind);
+        let proof = self.sigma_proof.clone();
+        ShareProof{
             coms,
-            share:f,
-            pi:r,
-            proof:self.sigma_proof.clone(),
+            share,
+            proof
         }
     }
 
