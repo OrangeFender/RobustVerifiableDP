@@ -1,5 +1,7 @@
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
+use group::Group;
+use sha3::digest::typenum::Length;
 use crate::constants::{SPLIT_LEN,SHARE_LEN,IND_ARR};
 use crate::util::random_scalars;
 use rand::thread_rng;
@@ -22,8 +24,6 @@ pub struct ReplicaShare{
     share:[Scalar; SHARE_LEN],
     blindings:[Scalar; SHARE_LEN],
 }
-
-
 
 
 
@@ -109,10 +109,10 @@ impl ReplicaShare{
         self.share.clone()
     }
 
-    pub fn check_com(&self,base:&CommitBase,com:Vec<G1Projective>) -> bool {
+    pub fn check_com(&self,base:&CommitBase,com:ReplicaCommitment) -> bool {
         for i in 0..SHARE_LEN {
             let ind=IND_ARR[self.ind][i];
-            if !base.vrfy(self.share[i], self.blindings[i], com[ind]) {
+            if !base.vrfy(self.share[i], self.blindings[i], com.ind_value(ind)) {
                 return false;
             }
         }
@@ -134,9 +134,50 @@ impl Add for ReplicaShare {
         let blindings = self.blindings.iter().zip(other.blindings.iter()).map(|(a, b)| *a + *b).collect::<Vec<Scalar>>().try_into().unwrap();
 
         Self {
-            ind: self.ind, // 假设 ind 不变
+            ind: self.ind,
             share,
             blindings,
+        }
+    }
+}
+
+
+
+#[derive(Clone, Serialize, Deserialize)]
+
+pub struct ReplicaCommitment{
+    com:Vec<G1Projective>,
+}
+
+impl ReplicaCommitment{
+    pub fn new(com:Vec<G1Projective>) -> Self {
+        if com.len() != SPLIT_LEN {
+            panic!("Invalid length of commitment");
+        }
+        Self {
+            com,
+        }
+    }
+    pub fn ind_value(&self,ind:usize) -> G1Projective {
+        self.com[ind]
+    }
+    pub fn get_sum(&self) -> G1Projective {
+        let mut sum = G1Projective::identity();
+        for i in 0..SPLIT_LEN {
+            sum += self.com[i];
+        }
+        sum
+    }
+}
+
+impl Add for ReplicaCommitment {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let com = self.com.iter().zip(other.com.iter()).map(|(a, b)| *a + *b).collect::<Vec<G1Projective>>();
+
+        Self {
+            com,
         }
     }
 }

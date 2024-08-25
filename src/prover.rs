@@ -90,6 +90,8 @@ impl Prover {
         }
         //self.coms_v_k_xor = xor_commitments(&self.coms_v_k, hash_bit_vec, pp.get_g(), pp.get_h())
     }
+
+    
      
 
 }

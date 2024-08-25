@@ -9,14 +9,14 @@ use crate::public_parameters::PublicParameters;
 use crate::util;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::msg_structs::{ShareProof, Transcript, SigOrShare};
-use crate::replicated::ReplicaSecret;
+use crate::replicated::{ReplicaSecret, ReplicaCommitment};
 use crate::constants;
 
 pub struct Client{
     x:bool,
     id: u64,
     secret: ReplicaSecret,
-    coms: Vec<G1Projective>,
+    coms: ReplicaCommitment,
     sigma_proof: ProofStruct,
 
     pks: [PublicKey;constants::PROVER_NUM],
@@ -41,14 +41,14 @@ impl Client{
             x,
             id,
             secret,
-            coms,
+            coms: ReplicaCommitment::new(coms),
             sigma_proof: proof,
             pks,
             signatures_and_id:Vec::new()
         }
     }
 
-    pub fn get_coms(&self) -> Vec<G1Projective> {
+    pub fn get_coms(&self) -> ReplicaCommitment {
         self.coms.clone()
     }
 
