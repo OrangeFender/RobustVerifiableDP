@@ -4,6 +4,7 @@ use group::Group;
 use sha3::digest::typenum::Length;
 use crate::constants::{SPLIT_LEN,SHARE_LEN,IND_ARR};
 use crate::util::random_scalars;
+use rand::Rng; // Import the Rng trait
 use rand::thread_rng;
 use crate::commitment::{Commit,CommitBase};
 use serde::{Serialize, Deserialize};
@@ -105,6 +106,21 @@ impl ReplicaSecret{
 }
 
 impl ReplicaShare{
+    pub fn new_zero(ind:usize) -> Self {
+        let share = [Scalar::zero(); SHARE_LEN];
+        let blindings = [Scalar::zero(); SHARE_LEN];
+        Self {
+            ind,
+            share,
+            blindings,
+        }
+        
+    }
+    
+    pub fn get_ind(&self) -> usize {
+        self.ind
+    }
+
     pub fn get_share(&self) -> [Scalar; SHARE_LEN]{
         self.share.clone()
     }
@@ -117,6 +133,27 @@ impl ReplicaShare{
             }
         }
         true
+    }
+
+    pub fn check_com_with_noise(&self, base: &CommitBase, com:ReplicaCommitment, noise_commitment: G1Projective) -> bool {
+        for i in 0..SHARE_LEN {
+            let ind = IND_ARR[self.ind][i];
+            if !base.vrfy(self.share[i], self.blindings[i], com.ind_value(ind) + noise_commitment) {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn add_noise(&self, noise: Scalar, noise_proof: Scalar)-> ReplicaShare{
+        let share_with_noise: [Scalar; SHARE_LEN] = self.share.iter().map(|&s| s + noise).collect::<Vec<Scalar>>().try_into().unwrap();
+        let blindings_with_noise: [Scalar; SHARE_LEN] = self.blindings.iter().map(|&b| b + noise_proof).collect::<Vec<Scalar>>().try_into().unwrap();
+
+        ReplicaShare {
+            ind: self.ind,
+            share: share_with_noise,
+            blindings: blindings_with_noise,
+        }
     }
 }
 
@@ -158,9 +195,11 @@ impl ReplicaCommitment{
             com,
         }
     }
+
     pub fn ind_value(&self,ind:usize) -> G1Projective {
         self.com[ind]
     }
+
     pub fn get_sum(&self) -> G1Projective {
         let mut sum = G1Projective::identity();
         for i in 0..SPLIT_LEN {
@@ -168,6 +207,15 @@ impl ReplicaCommitment{
         }
         sum
     }
+
+    pub fn new_zero() -> Self {
+        let com = vec![G1Projective::identity(); SPLIT_LEN];
+        Self {
+            com,
+        }
+    }
+
+    
 }
 
 impl Add for ReplicaCommitment {
@@ -182,3 +230,54 @@ impl Add for ReplicaCommitment {
     }
 }
 
+pub fn recon_shares(shares:Vec<ReplicaShare>)->Option<Scalar>{
+    let mut splits: [Vec<_>; SPLIT_LEN] = Default::default();
+    for share in shares {
+        for i in 0..SHARE_LEN {
+            let ind = IND_ARR[share.ind][i];
+            splits[ind].push(share.share[i]);
+        }
+    }
+
+    let mut sum = Scalar::zero();
+    for i in 0..SPLIT_LEN {
+        let len = splits[i].len();
+        if len == 0 {
+            return None;
+        }
+        let random_pick = thread_rng().gen_range(0, len);
+        sum += splits[i][random_pick];
+    }
+    Some(sum)
+
+}
+
+
+#[cfg(test)]
+mod tests{
+    use blstrs::Scalar;
+    use ff::Field;
+
+    use crate::constants;
+
+    use super::{recon_shares, ReplicaSecret};
+
+    #[test]
+    fn test_recon(){
+        let secret = ReplicaSecret::new(Scalar::from(1 as u64));
+        let splits=secret.get_splits();
+        let mut sum=Scalar::zero();
+        for i in 0..constants::SPLIT_LEN{
+            sum+=splits[i];
+        }
+        println!("sum:{}",sum.to_string());
+        let mut shares =Vec::new();
+        for i in 1..constants::PROVER_NUM{
+            shares.push(secret.get_share(i))
+        }
+
+        let res=recon_shares(shares);
+        println!("{}",res.unwrap().to_string());
+        assert_eq!(res.unwrap(),Scalar::from(1 as u64))
+    }
+}

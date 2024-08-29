@@ -1,217 +1,131 @@
 extern crate robust_verifiable_dp as dp;
 
+
+use ed25519_dalek::{Keypair, PublicKey, Signature};
 use blstrs::{G1Projective,Scalar};
 use dp::sigma_or::ProofStruct;
-use dp::transcript::{self, verify_transcript, TranscriptEd};
-use dp::util;
-use dp::{client::Client, sig};
+use dp::{util, verifier};
+use dp::client::Client;
 use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
-use dp::recon::reconstruct_com;
-use dp::sigma_or::{sigma_or_verify};
-use dp::hash_xor::{hash_to_bit_array,xor_commitments};
+use dp::verifier::VerifierBroad;
 use dp::commitment::Commit;
-use dp::msg_structs::ComsAndShare;
+use dp::msg_structs::{ShareProof,Transcript};
+use dp::constants;
+use dp::sign;
+use dp::datastore::{self, MemoryShareStore, MemoryCommitmentStore};
+use dp::replicated::{recon_shares, ReplicaShare};
 
-use aptos_crypto::{ed25519::Signature, multi_ed25519::{MultiEd25519PublicKey, MultiEd25519Signature}};
-use dp::sig::{generate_ed_sig_keys};
-use aptos_crypto::ed25519::{Ed25519PrivateKey, Ed25519PublicKey, Ed25519Signature};
 use rand::Rng;
 
+use std::time::Instant;
 
-const N_B: usize = 10;
-const NUM_CLIENTS: usize = 15;
-const NUM_PROVERS: usize = 10;
-const THRESHOLD: usize = 3;
+
+const NUM_CLIENTS: usize = 1000;
+
 fn main(){
+
+    let start = Instant::now();
+
     // Create public parameters
     //生成公共参数
-    let pp = PublicParameters::new(
-        N_B, NUM_PROVERS, THRESHOLD, b"seed"
-        );
+    let pp = PublicParameters::new( b"seed");
 
+    let mut pks=Vec::new();
+    let mut sig_keys =Vec::new();
+    for i in 0..constants::PROVER_NUM {
+        let (sk,pk)=sign::gen_keys();
+        pks.push(pk);
+        sig_keys.push(sk);
+    }
 
     // Create clients
     //生成客户端
     let mut clients: Vec<Client> = Vec::new();
     for i in 0..NUM_CLIENTS {
         let random_bool = rand::random();
-        let client = Client::new(i as u64 ,random_bool, &pp);
+        let client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
         clients.push(client);
     }
 
-    //----------------新测试的内容----------------
-    let mut clientmsg: Vec<Vec<ComsAndShare>> = Vec::new();
-    for i in 0..NUM_CLIENTS {
-        let mut msgs:Vec<ComsAndShare>=Vec::new();
-        for proverind in 0..NUM_PROVERS {
-            msgs.push(clients[i].create_prover_msg(&pp, proverind));
-        }
-        clientmsg.push(msgs);
-    }
-    //--------------------------------
+    // Create share stores first
+    let mut share_stores: Vec<MemoryShareStore> = (0..constants::PROVER_NUM)
+    .map(|_| MemoryShareStore::new())
+    .collect();
 
     // Create provers
     //生成服务器
-    let mut provers: Vec<Prover> = Vec::new();
-    let sig_keys = generate_ed_sig_keys(NUM_PROVERS);
-    let mut pks: Vec<Ed25519PublicKey> = Vec::new();
-    for i in 0..NUM_PROVERS {
-        let mut rng = rand::thread_rng();
-        let boolvec=(0..pp.get_n_b()).map(|_| rng.gen_bool(0.5)).collect();
-        let s=util::random_scalars(pp.get_n_b(), &mut rng);
-        let prover = Prover::new(i,boolvec,s,&pp,sig_keys[i].private_key.clone());
-        provers.push(prover);
-        pks.push(sig_keys[i].public_key.clone());
-    }
-    
-    //----------------新测试的内容----------------
-    let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
+    let mut provers: Vec<Prover<MemoryShareStore>> = share_stores
+    .iter_mut()
+    .enumerate()
+    .map(|(i, store)| Prover::new(i, &pp, sig_keys[i].to_bytes(), store))
+    .collect();
 
-    for i in 0..NUM_CLIENTS {
-        for j in 0..NUM_PROVERS {
-            let msg = &clientmsg[i][j];
-            let ret=provers[j].verify_msg_and_sig(msg, &pp);
-            assert!(ret.is_some());
-            sigs_client_prover[i][j] = ret;
+    //创建数据库相关
+    let mut share_stores_by_verifier = Vec::new();
+    let mut coms_v_ks = Vec::new();
+    for i in 0..constants::PROVER_NUM {
+        share_stores_by_verifier.push(MemoryShareStore::new());
+        coms_v_ks.push(provers[i].get_coms_v_k());
+    }
+
+
+    let share_stores_by_verifier_refs: Vec<&mut MemoryShareStore> = share_stores_by_verifier.iter_mut().collect();
+
+    let mut commitment_store = MemoryCommitmentStore::new();
+
+    let mut verifier= VerifierBroad::new(coms_v_ks, pks.clone(), share_stores_by_verifier_refs, &mut commitment_store);
+
+
+    //客户上传数据过程
+
+    for i in 0..NUM_CLIENTS{
+        for j in 0..constants::PROVER_NUM{
+            let msg = clients[i].create_prover_msg(j);
+            let res=provers[j].handle_msg(&msg, &pp);
+            assert!(res.is_some());
+            let res=res.unwrap();
+            clients[i].verify_sig_and_add(res, j);
         }
+        let transcript=clients[i].gen_transcript();
+
+        let res=verifier.handle_trancript(transcript, &pp);
+
+        assert!(res);
+
     }
 
-    //-----------------------------------------
 
-    //二维数组，sigs[i][j]表示第i个prover对第j个client的签名
-    // prover验证私人秘密
-    // let mut sigs_client_prover: Vec<Vec<Option<Ed25519Signature>>> = vec![vec![None; NUM_PROVERS]; NUM_CLIENTS];
+    let start2 = Instant::now();
 
-    // for i in 0..NUM_PROVERS {
-    //     let prover = &provers[i];
-    //     for j in 0..NUM_CLIENTS {
-    //         let client = &clients[j];
-    //         let coms_f_x = client.get_coms_f_x();
-    //         let (f_eval , r_eval) = client.get_evals(i);
-    //         let ret=prover.verify_share_and_sig(&coms_f_x, &pp, f_eval, r_eval);
-    //         assert!(ret.is_some());
-    //         sigs_client_prover[j][i] = ret;
-    //     }
-    // }
+    //验证过程
+    let uids=verifier.list_clients();
 
-    let bytes= bcs::to_bytes(&sigs_client_prover.clone()).unwrap();
-    //打印消息的长度
-    println!("{}*{} sigs length:{}",NUM_CLIENTS,NUM_PROVERS,bytes.len());
-
-    //客户端验证签名
-    for i in 0..NUM_PROVERS {
-        let pk= sig_keys[i].public_key.clone();
-        for j in 0..NUM_CLIENTS {
-            let client = &clients[j];
-            let sig = sigs_client_prover[j][i].clone().unwrap();            
-            let valid = client.vrfy_sig( &pk, &sig);
-            assert!(valid);
-        }
+    let mut shares=Vec::new();
+    for j in 0..constants::PROVER_NUM{
+        let verifier = &verifier;
+        let get_share_fn: Box<dyn Fn(u64) -> ReplicaShare> = Box::new(move |uid: u64| {
+            verifier.get_share(j, uid)
+        });
+        let res=provers[j].response_verifier(uids.clone(), get_share_fn);
+        shares.push(res.clone());
+        let res= verifier.handle_prover_share(j, res, verifier.aggregate_coms(), uids.clone(), &pp);
+        assert!(res);
     }
 
-    //随机使prover损坏
-    let mut valid_sigs: Vec<Vec<bool>> = vec![vec![true; NUM_PROVERS]; NUM_CLIENTS];
-    //至多使3个prover损坏,只破坏一半client对应的签名，后半段是完好的
-    for _ in 0..3 {
-        let mut rng = rand::thread_rng();
-        let index = rng.gen_range(0, NUM_PROVERS);
-        for j in 0..(NUM_CLIENTS/2) {
-            valid_sigs[j][index] = false;  // 这两个不对应吗就是？
-            sigs_client_prover[j][index] = None;
-        }
-    }
-    //纰漏秘密，聚合签名生成transcript
-    let mut transcripts: Vec<TranscriptEd> = Vec::new();
-    for i in 0..NUM_CLIENTS {
-        let client = &clients[i];
-        let mut sigs = Vec::new();
-        for j in 0..NUM_PROVERS {
-            if valid_sigs[i][j] {
-                sigs.push((sigs_client_prover[i][j].clone().unwrap(), j));
-            }
-        }
-        let transcript = client.get_transcript(NUM_PROVERS, &valid_sigs[i], sigs);//此处新修改
-        transcripts.push(transcript);
-    }
+    let res=recon_shares(shares);
+    assert!(res.is_some());
+    println!("Result in HEX is: {}",res.unwrap().to_string());
 
-    //验证transcript
-    for i in 0..NUM_CLIENTS {
-        let client = &clients[i];
-        let transcript = &transcripts[i];
-        let valid = verify_transcript( transcript, &pp, &pks);
-        assert!(valid);  
-    }
+    let duration = start.elapsed();
 
-    //测试序列化后的transcript------------------------------------
-    let bytes= bcs::to_bytes(&transcripts.clone()).unwrap();
-    println!("{}transcripts length:{}",NUM_CLIENTS,bytes.len());
-    //----------------------------------------------------------
-    
-    //  // 对于通过验证的Clients, 生成simga_or proof
-    //  let mut create_proofs: Vec<ProofStruct> = Vec::new();
-    //  for i in 0..NUM_CLIENTS {
-    //      let client = &clients[i];
-    //      let create_proof = client.create_sigma_proof(&pp);
-    //      create_proofs.push(create_proof);
-    //  }
- 
-    //  // 对于每个Provers来说, 需要首先重构出ci
-    //  let mut com_recons: Vec<G1Projective> = Vec::new();
-    //  // 通过验证后直接选取Prover的前t+1个commit重构，因为已经验证过Client秘密分享的安全性了
-    //  let players: Vec<usize> = (0..NUM_PROVERS)
-    //  .take(THRESHOLD)
-    //  .collect::<Vec<usize>>();
- 
-    //  for i in 0..NUM_CLIENTS {
-    //      let com_recon = reconstruct_com(&clients[i].get_coms_f_x(),  NUM_PROVERS);
-    //      com_recons.push(com_recon);
-    //  }
-     
-    //  // Provers重构出ci之后, 所有的prover对ci做验证
-    //  // let mut vrfy_recon_com: Vec<bool> = Vec::new();
-    //  // Provers在验证的时候，commit需要利用自己重构出的commit来验证
-    // for i in 0..NUM_CLIENTS {
-    //         let valid = sigma_or_verify(&pp.get_commit_base(), &create_proofs[i], com_recons[i].clone());
-    //         assert!(valid);
-    //         for j in 0..NUM_PROVERS {
-    //             let (f,r)=clients[i].get_evals(j);
-    //             provers[j].input_shares(f,r);
-    //         }
-    // }
+    let duration2 = start2.elapsed();
 
-    //计算哈希值
-    let mut all_commitments: Vec<Vec<G1Projective>> = Vec::new();
-    for i in 0..NUM_PROVERS {
-        let coms = provers[i].get_coms_v_k();
-        all_commitments.push(coms);
-    }
-    let hash = hash_to_bit_array(&all_commitments,pp.get_n_b());
+    println!("Number of clients is: {}", NUM_CLIENTS);
 
+    println!("Time elapsed in total is: {:?}", duration);
 
-    // prover给出最后结果的share
-    // let mut res_shares: Vec<Scalar> = Vec::new();
-    // let mut res_proof: Vec<Scalar> = Vec::new();
-    // for i in 0..NUM_PROVERS{
-    //     provers[i].x_or(&pp,&hash);
-    //     let (y,proof) = provers[i].calc_output(&pp);
-    //     res_shares.push(y);
-    //     res_proof.push(proof);
-
-    //     //verifier最后的验证
-    //     let noise_commitment = xor_commitments(&provers[i].get_coms_v_k(), &hash,pp.get_g(), pp.get_h());
-    //     let mut last_commitment = noise_commitment[0];
-    //     for j in 1..pp.get_n_b() {
-    //         last_commitment = last_commitment + noise_commitment[j];
-    //     }
-    //     for j in 0..NUM_CLIENTS {
-    //         last_commitment = last_commitment + clients[j].get_coms_f_x()[i];
-    //     }
-    //     assert!(last_commitment == pp.get_commit_base().commit(y,proof));
-    // }
-
-    //TODO，客户数据存储的位置变了
-
+    println!("Time elapsed in sum clients, reconstruction and verification is: {:?}", duration2);
 
     println!("All tests passed!");
 }

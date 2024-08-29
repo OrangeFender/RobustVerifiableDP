@@ -16,6 +16,14 @@ impl CommitBase{
             bases: [g, h],
         }
     }
+
+    pub fn get_g(&self) -> G1Projective {
+        self.bases[0]
+    }
+
+    pub fn get_h(&self) -> G1Projective {
+        self.bases[1]
+    }
 }
 
 pub trait Commit{

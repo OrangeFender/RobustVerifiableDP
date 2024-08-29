@@ -94,6 +94,7 @@ impl Client{
         let share = self.secret.get_share(proverind);
         let proof = self.sigma_proof.clone();
         ShareProof{
+            uid:self.id,
             coms,
             share,
             proof

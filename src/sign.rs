@@ -1,7 +1,13 @@
 use ed25519_dalek::{Signature, Keypair, PublicKey, Signer, Verifier};
-use blstrs::G1Projective;
 use serde::{Serialize, Deserialize};
 use crate::replicated::ReplicaCommitment;
+
+
+pub fn gen_keys() -> (Keypair, PublicKey) {
+    let pair = Keypair::generate(&mut rand::thread_rng());
+    let pk = pair.public;
+    (pair, pk)
+}
 
 pub fn sign_verified_deal(sig_key:&Keypair, coms: &ReplicaCommitment) -> Signature {
     // Return signature the dealing is valid
