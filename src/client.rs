@@ -1,26 +1,21 @@
-use std::result;
-
-use blstrs::{G1Projective, Scalar};
+use blstrs::Scalar;
 use ed25519_dalek::{Signature,PublicKey};
 use crate::sign;
-use crate::sign::mySignature;
-use crate::commitment::Commit;
+use crate::sign::MySignature;
 use crate::public_parameters::PublicParameters;
-use crate::util;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::msg_structs::{ShareProof, Transcript, SigOrShare};
 use crate::replicated::{ReplicaSecret, ReplicaCommitment};
 use crate::constants;
 
 pub struct Client{
-    x:bool,
     id: u64,
     secret: ReplicaSecret,
     coms: ReplicaCommitment,
     sigma_proof: ProofStruct,
 
     pks: [PublicKey;constants::PROVER_NUM],
-    signatures_and_id: Vec<(mySignature,usize)>
+    signatures_and_id: Vec<(MySignature,usize)>
 }
 
 impl Client{
@@ -38,7 +33,6 @@ impl Client{
         }
 
         Self {
-            x,
             id,
             secret,
             coms: ReplicaCommitment::new(coms),

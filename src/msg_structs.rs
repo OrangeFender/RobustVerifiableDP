@@ -2,11 +2,9 @@ use crate::commitment::CommitBase;
 use crate::replicated::{ReplicaShare, ReplicaCommitment};
 use crate::sigma_or::ProofStruct;
 use crate::constants;
-use group::Group;
-use blstrs::G1Projective;
 use serde::{Serialize, Deserialize};
-use ed25519_dalek::{Signature, Keypair, PublicKey, Signer, Verifier};
-use crate::sign::{mySignature,verify_sig};
+use ed25519_dalek::PublicKey;
+use crate::sign::{MySignature,verify_sig};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ShareProof{
@@ -40,7 +38,7 @@ pub struct Transcript {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SigOrShare {
-    Signature(mySignature),
+    Signature(MySignature),
     Share(ReplicaShare),
 }
 

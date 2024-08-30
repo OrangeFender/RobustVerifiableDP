@@ -22,13 +22,13 @@ pub fn verify_sig(coms: &ReplicaCommitment, pk: &PublicKey, sig: Signature) -> b
 }
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct mySignature(Vec<u8>);  // Assuming the signature is 64 bytes
-impl From<Signature> for mySignature {
+pub struct MySignature(Vec<u8>);  // Assuming the signature is 64 bytes
+impl From<Signature> for MySignature {
     fn from(sig: Signature) -> Self {
-        mySignature(sig.to_bytes().to_vec())
+        MySignature(sig.to_bytes().to_vec())
     }
 }
-impl Into<Signature> for mySignature {
+impl Into<Signature> for MySignature {
     fn into(self) -> Signature {
         Signature::from_bytes(&self.0).unwrap()
     }

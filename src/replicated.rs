@@ -1,7 +1,6 @@
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
 use group::Group;
-use sha3::digest::typenum::Length;
 use crate::constants::{SPLIT_LEN,SHARE_LEN,IND_ARR};
 use crate::util::random_scalars;
 use rand::Rng; // Import the Rng trait

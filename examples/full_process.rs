@@ -1,27 +1,20 @@
 extern crate robust_verifiable_dp as dp;
 
 
-use ed25519_dalek::{Keypair, PublicKey, Signature};
-use blstrs::{G1Projective,Scalar};
-use dp::sigma_or::ProofStruct;
-use dp::{util, verifier};
 use dp::client::Client;
 use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
 use dp::verifier::VerifierBroad;
-use dp::commitment::Commit;
-use dp::msg_structs::{ShareProof,Transcript};
 use dp::constants;
 use dp::sign;
-use dp::datastore::{self, MemoryShareStore, MemoryCommitmentStore};
+use dp::datastore::{MemoryShareStore, MemoryCommitmentStore};
 use dp::replicated::{recon_shares, ReplicaShare};
 
-use rand::Rng;
 
 use std::time::Instant;
 
 
-const NUM_CLIENTS: usize = 1000;
+const NUM_CLIENTS: usize = 50000;
 
 fn main(){
 
@@ -33,19 +26,10 @@ fn main(){
 
     let mut pks=Vec::new();
     let mut sig_keys =Vec::new();
-    for i in 0..constants::PROVER_NUM {
+    for _ in 0..constants::PROVER_NUM {
         let (sk,pk)=sign::gen_keys();
         pks.push(pk);
         sig_keys.push(sk);
-    }
-
-    // Create clients
-    //生成客户端
-    let mut clients: Vec<Client> = Vec::new();
-    for i in 0..NUM_CLIENTS {
-        let random_bool = rand::random();
-        let client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
-        clients.push(client);
     }
 
     // Create share stores first
@@ -80,14 +64,16 @@ fn main(){
     //客户上传数据过程
 
     for i in 0..NUM_CLIENTS{
+        let random_bool = rand::random();
+        let mut client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
         for j in 0..constants::PROVER_NUM{
-            let msg = clients[i].create_prover_msg(j);
+            let msg = client.create_prover_msg(j);
             let res=provers[j].handle_msg(&msg, &pp);
             assert!(res.is_some());
             let res=res.unwrap();
-            clients[i].verify_sig_and_add(res, j);
+            client.verify_sig_and_add(res, j);
         }
-        let transcript=clients[i].gen_transcript();
+        let transcript=client.gen_transcript();
 
         let res=verifier.handle_trancript(transcript, &pp);
 
@@ -95,6 +81,7 @@ fn main(){
 
     }
 
+    let duration = start.elapsed();
 
     let start2 = Instant::now();
 
@@ -117,13 +104,12 @@ fn main(){
     assert!(res.is_some());
     println!("Result in HEX is: {}",res.unwrap().to_string());
 
-    let duration = start.elapsed();
 
     let duration2 = start2.elapsed();
 
     println!("Number of clients is: {}", NUM_CLIENTS);
 
-    println!("Time elapsed in total is: {:?}", duration);
+    println!("Time elapsed in interaction with clients is: {:?}", duration);
 
     println!("Time elapsed in sum clients, reconstruction and verification is: {:?}", duration2);
 

@@ -1,13 +1,12 @@
 // ============================================================
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
-use ed25519_dalek::{Signature, Keypair, PublicKey, Signer, Verifier};
+use ed25519_dalek::{Signature, Keypair};
 use rand::Rng;
 use crate::constants;
 use crate::commitment::Commit;
-use crate::msg_structs::ShareProof;
 use crate::public_parameters::PublicParameters;
-use crate::{msg_structs, sigma_or, util};
+use crate::msg_structs;
 use crate::sign::sign_verified_deal;
 use crate::datastore::ShareStore;
 use crate::replicated::ReplicaShare;
