@@ -4,13 +4,12 @@ extern crate robust_verifiable_dp as dp;
 use dp::client::Client;
 use dp::public_parameters::PublicParameters;
 use dp::prover::Prover;
-use dp::verifier::VerifierBroad;
+use dp::verifier::Verifier;
 use dp::constants;
 use dp::sign;
-use dp::share_store::{MemoryShareStore, MemoryCommitmentStore};
+use dp::share_store::MemoryShareStore;
+use dp::user_store::MemoryUserStore;
 use dp::replicated::{recon_shares, ReplicaShare};
-
-
 use std::time::Instant;
 
 
@@ -46,19 +45,14 @@ fn main(){
     .collect();
 
     //创建数据库相关
-    let mut share_stores_by_verifier = Vec::new();
     let mut coms_v_ks = Vec::new();
     for i in 0..constants::PROVER_NUM {
-        share_stores_by_verifier.push(MemoryShareStore::new());
         coms_v_ks.push(provers[i].get_coms_v_k());
     }
 
+    let mut broad = MemoryUserStore::new();
 
-    let share_stores_by_verifier_refs: Vec<&mut MemoryShareStore> = share_stores_by_verifier.iter_mut().collect();
-
-    let mut commitment_store = MemoryCommitmentStore::new();
-
-    let mut verifier= VerifierBroad::new(coms_v_ks, pks.clone(), share_stores_by_verifier_refs, &mut commitment_store);
+    let mut verifier= Verifier::new(coms_v_ks, pks.clone());
 
 
     //客户上传数据过程
@@ -66,16 +60,11 @@ fn main(){
     for i in 0..NUM_CLIENTS{
         let random_bool = rand::random();
         let mut client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
+        client.send_proof_coms(&mut broad);
         for j in 0..constants::PROVER_NUM{
-            let msg = client.create_prover_msg(j);
-            let res=provers[j].handle_msg(&msg, &pp);
-            assert!(res.is_some());
-            let res=res.unwrap();
-            client.verify_sig_and_add(res, j);
+            client.send_share(proverind, comm)
         }
-        let transcript=client.gen_transcript();
 
-        let res=verifier.handle_trancript(transcript, &pp);
 
         assert!(res);
 

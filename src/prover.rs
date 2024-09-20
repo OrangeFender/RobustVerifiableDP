@@ -1,7 +1,7 @@
 // ============================================================
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
-use ed25519_dalek::{Signature, Keypair};
+use ed25519_dalek::{Keypair, PublicKey, Signature};
 use rand::Rng;
 use crate::constants;
 use crate::commitment::Commit;
@@ -67,21 +67,7 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         self.coms_v_k.clone()
     }
 
-    /// Handle a message from a client, including
-    /// 1. Verifying the share is corresponding to the commitment
-    /// 2. Verify the sigma-or proof
-    /// 3. Sign the deal
-    /// 4. Store the share
 
-    pub fn handle_share(&mut self, msg:&msg_structs::ShareProof,pp:&PublicParameters)-> Option<Signature>{
-        let result = msg.verify(self.index, pp.get_commit_base());
-        if result {
-            self.share_store.put(msg.uid, msg.share.clone());
-            Some(sign_verified_deal(&self.sig_key, &msg.coms))
-        } else {
-            None
-        }
-    }
 
     pub fn handle_client<'b, C:Communicator, B :UserStore>(&mut self, client:&'b mut C, broad: &'b mut B,pp:&PublicParameters) -> bool {
         let (id, replica_share): (u64, ReplicaShare) = client.receive().unwrap();
@@ -97,6 +83,44 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         broad.sig_to_user(id, sign_verified_deal(&self.sig_key, &coms).into(), self.index)
     }
     
+
+    pub fn check_all_users_and_sum_share_and_add_noise<B:UserStore>(&self,pks:&Vec<PublicKey>, broad:&B, pp:&PublicParameters) -> ReplicaShare {
+        let mut valid_user_ids=Vec::new();
+        let mut sum_share = ReplicaShare::new_zero(self.index);
+        let mut all_users = broad.iter_all_users().unwrap();
+        while let Some(user) = all_users.next() {
+            if user.check_whole(pks, pp) {
+                valid_user_ids.push(user.id);
+                match self.share_store.get(user.id) {
+                    Some(share) => {
+                        sum_share = sum_share + share;
+                    }
+                    None => {
+                        sum_share=sum_share+user.share[self.index].clone().unwrap();
+                    }
+                }
+            }
+        }
+        let valid_user_ids=valid_user_ids.sort();
+        let hash_val = hash_bit_vec(&valid_user_ids, constants::BITS_NUM);
+        let mut bit_vector_xor = self.bit_vector.clone();
+        let mut s_blinding_xor = self.s_blinding.clone();
+        for i in 0..constants::BITS_NUM {
+            if hash_val[i] {
+                bit_vector_xor[i] = Scalar::one() - bit_vector_xor[i];
+                s_blinding_xor[i] = Scalar::one() - s_blinding_xor[i];
+            }
+        }
+        let mut noise = Scalar::zero();
+        let mut noise_proof = Scalar::zero();
+        for i in 0..constants::BITS_NUM {
+            noise += bit_vector_xor[i];
+            noise_proof += s_blinding_xor[i];
+        }
+        sum_share.add_noise(noise, noise_proof);
+
+        sum_share
+    }
 
     /// # Arguments
     /// * `uid_list` - The list of uids of clients

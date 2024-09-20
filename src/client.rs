@@ -1,6 +1,6 @@
 use blstrs::Scalar;
 use ed25519_dalek::{Signature,PublicKey};
-use crate::sign;
+use crate::{communicator, sign};
 use crate::sign::MySignature;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
@@ -49,16 +49,16 @@ impl Client{
         broad.new_user(self.id, self.coms.clone(), self.sigma_proof.clone())
     }
 
-    pub fn send_share<'a, C:Communicator>(&self, proverind:usize, comm: &mut C) -> bool {
+    pub fn send_share<'a, C:Communicator>(&self, proverind:usize, communicator: &mut C) -> bool {
         let share=self.secret.get_share(proverind);
         let tuple=(self.id, share);
-        comm.send(&tuple).is_ok()
+        communicator.send(&tuple).is_ok()
     }
 
     pub fn reveal_share<'a, D:UserStore>(&self, broad: &'a mut D) -> bool {
         match broad.get_user(self.id) {
             Some(user) => {
-                let signed=user.check_signature(self.pks.to_vec());
+                let signed=user.check_signature(&self.pks.to_vec());
                 for i in 0..constants::PROVER_NUM {
                     if !signed.contains(&i) {
                         broad.upload_share(self.id, self.secret.get_share(i), i);

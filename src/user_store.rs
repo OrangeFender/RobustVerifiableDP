@@ -11,16 +11,16 @@ use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct User{
-    id: u64,
-    commitment: ReplicaCommitment,
-    sigma_proof: ProofStruct,
-    signatures: [Option<MySignature>; constants::PROVER_NUM],
-    share: [Option<ReplicaShare>; constants::PROVER_NUM]
+    pub id: u64,
+    pub commitment: ReplicaCommitment,
+    pub sigma_proof: ProofStruct,
+    pub signatures: [Option<MySignature>; constants::PROVER_NUM],
+    pub share: [Option<ReplicaShare>; constants::PROVER_NUM]
 }
 
 
 impl User {
-    pub fn check_signature(&self, pks: Vec<PublicKey>) -> HashSet<usize> {
+    pub fn check_signature(&self, pks: &Vec<PublicKey>) -> HashSet<usize> {
         let mut res = HashSet::new();
         for i in 0..constants::PROVER_NUM {
             if let Some(sig) = &self.signatures[i] {
@@ -43,7 +43,7 @@ impl User {
         res
     }
 
-    pub fn check_whole(&self, pks: Vec<PublicKey>,pp: &PublicParameters) -> bool {
+    pub fn check_whole(&self, pks: &Vec<PublicKey>,pp: &PublicParameters) -> bool {
         let reconcom = self.commitment.get_sum();
         if !self.sigma_proof.verify(pp.get_commit_base(), reconcom){
             return false;
@@ -69,13 +69,21 @@ pub trait UserStore {
     fn upload_share(&mut self, id: u64, share: ReplicaShare, proverid: usize) -> bool;
 
     fn iter_all_users(&self) -> Option<Box<dyn Iterator<Item = User>>>;
-    
+
+    fn check_all_users(&self, pks: &Vec<PublicKey>, pp: &PublicParameters) -> Vec<u64>;
 }
 
-struct MemoryUserStore {
+pub struct MemoryUserStore {
     users: RwLock<HashMap<u64, User>>
 }
 
+impl MemoryUserStore {
+    pub fn new() -> Self {
+        MemoryUserStore {
+            users: RwLock::new(HashMap::new()),
+        }
+    }
+}
 
 impl UserStore for MemoryUserStore {
     fn new_user(&mut self, id: u64, commitment: ReplicaCommitment, sigma_proof: ProofStruct) -> bool {
@@ -142,5 +150,20 @@ impl UserStore for MemoryUserStore {
             Ok(users) => Some(Box::new(users.values().cloned().collect::<Vec<_>>().into_iter())),
             Err(_) => None,
         }
+    }
+
+    fn check_all_users(&self, pks: &Vec<PublicKey>, pp: &PublicParameters) -> Vec<u64> {
+        let mut valid_user_ids = Vec::new();
+
+        if let Some(users_iter) = self.iter_all_users() {
+            for user in users_iter {
+                if user.check_whole(pks, pp) {
+                    valid_user_ids.push(user.id);
+                }
+            }
+        }
+
+        valid_user_ids.sort();
+        valid_user_ids
     }
 }
