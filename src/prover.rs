@@ -6,12 +6,14 @@ use rand::Rng;
 use crate::constants;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
-use crate::msg_structs;
 use crate::sign::sign_verified_deal;
-use crate::datastore::ShareStore;
+use crate::share_store::ShareStore;
 use crate::replicated::ReplicaShare;
 use crate::hash::hash_bit_vec;
 use crate::util::random_scalars;
+use crate::communicator::Communicator;
+use crate::user_store::UserStore;
+
 
 pub struct Prover<'a, D:ShareStore> {
     index: usize,
@@ -71,7 +73,7 @@ impl <'a, D:ShareStore> Prover<'a, D> {
     /// 3. Sign the deal
     /// 4. Store the share
 
-    pub fn handle_msg(&mut self, msg:&msg_structs::ShareProof,pp:&PublicParameters)-> Option<Signature>{
+    pub fn handle_share(&mut self, msg:&msg_structs::ShareProof,pp:&PublicParameters)-> Option<Signature>{
         let result = msg.verify(self.index, pp.get_commit_base());
         if result {
             self.share_store.put(msg.uid, msg.share.clone());
@@ -81,6 +83,20 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         }
     }
 
+    pub fn handle_client<'b, C:Communicator, B :UserStore>(&mut self, client:&'b mut C, broad: &'b mut B,pp:&PublicParameters) -> bool {
+        let (id, replica_share): (u64, ReplicaShare) = client.receive().unwrap();
+        let (coms, proof) = broad.get_user_commitment_proof(id).unwrap();
+        let recon=coms.get_sum();
+        if !proof.verify(pp.get_commit_base(), recon) {
+            return false;
+        }
+        if !replica_share.check_com(pp.get_commit_base(), coms.clone()){
+            return false;
+        }
+        self.share_store.put(id, replica_share);
+        broad.sig_to_user(id, sign_verified_deal(&self.sig_key, &coms).into(), self.index)
+    }
+    
 
     /// # Arguments
     /// * `uid_list` - The list of uids of clients

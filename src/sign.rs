@@ -33,3 +33,8 @@ impl Into<Signature> for MySignature {
         Signature::from_bytes(&self.0).unwrap()
     }
 }
+impl Default for MySignature {
+    fn default() -> Self {
+        MySignature(vec![0; 64])
+    }
+}

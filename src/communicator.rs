@@ -11,11 +11,6 @@ pub trait Communicator {
 
     fn send_ack(&mut self) -> Result<()>;
     fn receive_ack(&mut self) -> Result<()>;
-
-    fn set_timeout(&mut self, duration: Option<Duration>) -> Result<()>;
-
-    fn send_u64(&mut self, value: u64) -> Result<()>;
-    fn receive_u64(&mut self) -> Result<u64>;
 }
 
 // Tcp 通信实现
@@ -67,53 +62,8 @@ impl Communicator for SyncTcpCommunicator {
         }
     }
 
-    fn set_timeout(&mut self, duration: Option<Duration>) -> io::Result<()> {
-        self.stream.set_read_timeout(duration)?;
-        self.stream.set_write_timeout(duration)?;
-        Ok(())
-    }
 
-    fn send_u64(&mut self, value: u64) -> io::Result<()> {
-        let value_bytes = value.to_be_bytes();
-        self.stream.write_all(&value_bytes)?;
-        Ok(())
-    }
-
-    fn receive_u64(&mut self) -> io::Result<u64> {
-        let mut value_bytes = [0u8; 8]; // u64 的字节大小为 8
-        self.stream.read_exact(&mut value_bytes)?;
-        let value = u64::from_be_bytes(value_bytes); // 使用大端序解码 u64
-        Ok(value)
-    }
 }
 
-// 监听器trait定义
-pub trait CommunicatorListener {
-    type Communicator: Communicator;
-
-    fn accept(&self) -> io::Result<(Self::Communicator, SocketAddr)>;
-}
-
-// Tcp 监听器实现
-pub struct TcpListener {
-    listener: std::net::TcpListener,
-}
-
-impl TcpListener {
-    pub fn bind(addr: &str) -> io::Result<Self> {
-        let listener = std::net::TcpListener::bind(addr)?;
-        Ok(Self { listener })
-    }
-}
-
-impl CommunicatorListener for TcpListener {
-    type Communicator = SyncTcpCommunicator;
-
-    fn accept(&self) -> io::Result<(Self::Communicator, SocketAddr)> {
-        let (stream, addr) = self.listener.accept()?;
-        let communicator = SyncTcpCommunicator { stream };
-        Ok((communicator, addr))
-    }
-}
 
 const MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;

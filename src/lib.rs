@@ -8,10 +8,10 @@ pub mod constants;
 pub mod commitment;
 pub mod sigma_or;
 pub mod hash;
-pub mod msg_structs;
+pub mod user_store;
 pub mod replicated;
 pub mod sign;
-pub mod datastore;
+pub mod share_store;
 pub mod communicator;
 
 pub const DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION : &[u8; 41] = b"DSTofRobustDP'sPublicParametersGeneration";

@@ -3,8 +3,7 @@ use group::Group;
 use ed25519_dalek::PublicKey;
 use crate::constants;
 use crate::public_parameters::PublicParameters;
-use crate::msg_structs;
-use crate::datastore::{ShareStore, CommitmentStore};
+use crate::share_store::{ShareStore, CommitmentStore};
 use crate::replicated::{ReplicaShare, ReplicaCommitment};
 use crate::hash::hash_bit_vec;
 

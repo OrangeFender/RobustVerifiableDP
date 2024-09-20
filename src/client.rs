@@ -4,18 +4,17 @@ use crate::sign;
 use crate::sign::MySignature;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
-use crate::msg_structs::{ShareProof, Transcript, SigOrShare};
 use crate::replicated::{ReplicaSecret, ReplicaCommitment};
 use crate::constants;
+use crate::user_store::UserStore;
+use crate::communicator::Communicator;
 
 pub struct Client{
     id: u64,
     secret: ReplicaSecret,
     coms: ReplicaCommitment,
     sigma_proof: ProofStruct,
-
     pks: [PublicKey;constants::PROVER_NUM],
-    signatures_and_id: Vec<(MySignature,usize)>
 }
 
 impl Client{
@@ -38,7 +37,6 @@ impl Client{
             coms: ReplicaCommitment::new(coms),
             sigma_proof: proof,
             pks,
-            signatures_and_id:Vec::new()
         }
     }
 
@@ -47,53 +45,33 @@ impl Client{
     }
 
 
-    pub fn verify_sig_and_add(&mut self, sig: Signature, proverid:usize) -> bool {
-        if sign::verify_sig(&self.coms, &self.pks[proverid], sig){
-            
-            if self.signatures_and_id.iter().any(|(_, id)| *id == proverid) {
-                self.signatures_and_id.iter_mut().for_each(|(s, id)| {
-                    if *id == proverid {
-                        *s = sig.into();
-                        *id = proverid;
+    pub fn send_proof_coms<'a, D :UserStore>(&self, broad: &'a mut D) -> bool {
+        broad.new_user(self.id, self.coms.clone(), self.sigma_proof.clone())
+    }
+
+    pub fn send_share<'a, C:Communicator>(&self, proverind:usize, comm: &mut C) -> bool {
+        let share=self.secret.get_share(proverind);
+        let tuple=(self.id, share);
+        comm.send(&tuple).is_ok()
+    }
+
+    pub fn reveal_share<'a, D:UserStore>(&self, broad: &'a mut D) -> bool {
+        match broad.get_user(self.id) {
+            Some(user) => {
+                let signed=user.check_signature(self.pks.to_vec());
+                for i in 0..constants::PROVER_NUM {
+                    if !signed.contains(&i) {
+                        broad.upload_share(self.id, self.secret.get_share(i), i);
                     }
-                });
-            } else {
-                self.signatures_and_id.push((sig.into(), proverid));
+                }
+                return true;
             }
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    pub fn gen_transcript(&self) -> Transcript{
-        let mut sigs_and_shares = Vec::with_capacity(constants::PROVER_NUM);
-        for i in 0..constants::PROVER_NUM {
-            if let Some((sig, _)) = self.signatures_and_id.iter().find(|(_, id)| *id == i) {
-                sigs_and_shares.push(SigOrShare::Signature(sig.clone()));
-            } else {
-                sigs_and_shares.push(SigOrShare::Share(self.secret.get_share(i)));
+            None => {
+                return false;
             }
-            
-        }
-
-        Transcript::new(self.id, self.coms.clone(), sigs_and_shares, self.sigma_proof.clone())
-    }
-
-
-    
-    pub fn create_prover_msg(&self,proverind:usize)->ShareProof{
-        let coms=self.coms.clone();
-        let share = self.secret.get_share(proverind);
-        let proof = self.sigma_proof.clone();
-        ShareProof{
-            uid:self.id,
-            coms,
-            share,
-            proof
         }
     }
+
 
 }
 

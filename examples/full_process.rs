@@ -7,14 +7,14 @@ use dp::prover::Prover;
 use dp::verifier::VerifierBroad;
 use dp::constants;
 use dp::sign;
-use dp::datastore::{MemoryShareStore, MemoryCommitmentStore};
+use dp::share_store::{MemoryShareStore, MemoryCommitmentStore};
 use dp::replicated::{recon_shares, ReplicaShare};
 
 
 use std::time::Instant;
 
 
-const NUM_CLIENTS: usize = 50000;
+const NUM_CLIENTS: usize = 500;
 
 fn main(){
 

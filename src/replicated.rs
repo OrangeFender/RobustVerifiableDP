@@ -156,6 +156,18 @@ impl ReplicaShare{
     }
 }
 
+impl Default for ReplicaShare {
+    fn default() -> Self {
+        let share = [Scalar::zero(); SHARE_LEN];
+        let blindings = [Scalar::zero(); SHARE_LEN];
+        Self {
+            ind: 0,
+            share,
+            blindings,
+        }
+    }
+}
+
 use std::ops::Add;
 
 
