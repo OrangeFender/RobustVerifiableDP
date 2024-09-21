@@ -1,7 +1,6 @@
 number of clients, interact with clients, provers interact with verifier
-100, 2S, 11ms
-500, 11s, 37ms
-1000, 21s, 59ms
-5000, 104s, 261ms
-10000, 208s, 587ms
-50000, 1048s, 2s
+100, 1.71S, 1.79s
+500, 9.57s, 9.64s
+1000, 22.88s, 19.26s
+5000, 92.28s, 94.69s
+10000, 181.48s, 189.91s
