@@ -25,7 +25,7 @@ impl Verifier {
         }
     }
 
-    pub fn check_all_users_and_sum_coms<B:UserStore>(&self, broad: &B, pp: &PublicParameters) -> (ReplicaCommitment, G1Projective) {
+    pub fn check_all_users_and_sum_coms<B:UserStore>(&self, broad: &B, pp: &PublicParameters) -> (ReplicaCommitment, Vec<bool>) {
         let mut valid_user_ids = Vec::new();
         let mut sum_com = ReplicaCommitment::new_zero();
         let mut all_users = broad.iter_all_users().unwrap();
@@ -37,7 +37,21 @@ impl Verifier {
         }
         let valid_user_ids = valid_user_ids.sort();
         let hash_val = hash_bit_vec(&valid_user_ids, constants::BITS_NUM);
-        let mut coms_x_or = self.coms_v_ks[0].clone();
+        (sum_com, hash_val)
+        
+    }
+
+
+
+    /// this function verifies the share of prover
+    pub fn handle_prover_share(&self,ind:usize,share:ReplicaShare, aggregated_com:ReplicaCommitment, hash_val:Vec<bool>, pp:&PublicParameters)->bool{
+        let prover_id=share.get_ind();
+        
+        if ind!=prover_id{
+            return false;
+        }
+
+        let mut coms_x_or = self.coms_v_ks[ind].clone();
         let g = pp.get_g();
         let h = pp.get_h();
         for i in 0..constants::BITS_NUM {
@@ -49,24 +63,9 @@ impl Verifier {
         for i in 0..constants::BITS_NUM {
             noise_commitment += coms_x_or[i];
         }
-        (sum_com , noise_commitment)
-    }
 
 
-
-    /// this function verifies the share of prover
-    pub fn handle_prover_share(&self,ind:usize,share:ReplicaShare, aggregated_com:ReplicaCommitment, noise_commitment:G1Projective, pp:&PublicParameters)->bool{
-        let prover_id=share.get_ind();
-        if ind!=prover_id{
-            return false;
-        }
-
-        if share.check_com_with_noise(pp.get_commit_base(),aggregated_com,noise_commitment){
-            return true;
-        }
-        else{
-            return false;
-        }
+        share.check_com_with_noise(pp.get_commit_base(),aggregated_com,noise_commitment)
     }
 
 }

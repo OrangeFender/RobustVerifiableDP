@@ -1,13 +1,12 @@
 use blstrs::Scalar;
 use ed25519_dalek::{Signature,PublicKey};
-use crate::{communicator, sign};
+use crate::sign;
 use crate::sign::MySignature;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
-use crate::replicated::{ReplicaSecret, ReplicaCommitment};
+use crate::replicated::{ReplicaSecret, ReplicaCommitment, ReplicaShare};
 use crate::constants;
 use crate::user_store::UserStore;
-use crate::communicator::Communicator;
 
 pub struct Client{
     id: u64,
@@ -49,10 +48,9 @@ impl Client{
         broad.new_user(self.id, self.coms.clone(), self.sigma_proof.clone())
     }
 
-    pub fn send_share<'a, C:Communicator>(&self, proverind:usize, communicator: &mut C) -> bool {
+    pub fn send_share(&self, proverind:usize) -> (u64, ReplicaShare) {
         let share=self.secret.get_share(proverind);
-        let tuple=(self.id, share);
-        communicator.send(&tuple).is_ok()
+        (self.id, share)
     }
 
     pub fn reveal_share<'a, D:UserStore>(&self, broad: &'a mut D) -> bool {

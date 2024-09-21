@@ -11,7 +11,6 @@ use crate::share_store::ShareStore;
 use crate::replicated::ReplicaShare;
 use crate::hash::hash_bit_vec;
 use crate::util::random_scalars;
-use crate::communicator::Communicator;
 use crate::user_store::UserStore;
 
 
@@ -21,11 +20,12 @@ pub struct Prover<'a, D:ShareStore> {
     s_blinding: Vec<Scalar>,
     coms_v_k: Vec<G1Projective>,
     sig_key: Keypair,
+    pks: Vec<PublicKey>,
     share_store: &'a mut D, //the database of shares from clients
 }
 
 impl <'a, D:ShareStore> Prover<'a, D> {
-    pub fn new(index:usize, pp:&PublicParameters, sig_key_bytes:[u8;64], share_store: &'a mut D) -> Self {
+    pub fn new(index:usize, pp:&PublicParameters, sig_key_bytes:[u8;64],pks:&Vec<PublicKey>, share_store: &'a mut D) -> Self {
         let length = constants::BITS_NUM;
         let mut rng = rand::thread_rng();
         let mut bool_vector = Vec::new();
@@ -58,6 +58,7 @@ impl <'a, D:ShareStore> Prover<'a, D> {
             s_blinding,
             coms_v_k,
             sig_key,
+            pks:pks.clone(),
             share_store,
         }
 
@@ -66,11 +67,9 @@ impl <'a, D:ShareStore> Prover<'a, D> {
     pub fn get_coms_v_k(&self) -> Vec<G1Projective> {
         self.coms_v_k.clone()
     }
-
-
-
-    pub fn handle_client<'b, C:Communicator, B :UserStore>(&mut self, client:&'b mut C, broad: &'b mut B,pp:&PublicParameters) -> bool {
-        let (id, replica_share): (u64, ReplicaShare) = client.receive().unwrap();
+    
+    pub fn handle_client<'b, B :UserStore>(&mut self,client:(u64, ReplicaShare), broad: &'b mut B,pp:&PublicParameters) -> bool {
+        let (id, replica_share): (u64, ReplicaShare) = client;
         let (coms, proof) = broad.get_user_commitment_proof(id).unwrap();
         let recon=coms.get_sum();
         if !proof.verify(pp.get_commit_base(), recon) {
@@ -94,6 +93,7 @@ impl <'a, D:ShareStore> Prover<'a, D> {
                 match self.share_store.get(user.id) {
                     Some(share) => {
                         sum_share = sum_share + share;
+                        
                     }
                     None => {
                         sum_share=sum_share+user.share[self.index].clone().unwrap();
@@ -117,50 +117,11 @@ impl <'a, D:ShareStore> Prover<'a, D> {
             noise += bit_vector_xor[i];
             noise_proof += s_blinding_xor[i];
         }
-        sum_share.add_noise(noise, noise_proof);
+        sum_share.add_noise(noise, noise_proof)
 
-        sum_share
     }
 
-    /// # Arguments
-    /// * `uid_list` - The list of uids of clients
-    /// * `get_share_from_verifier` - A function that returns the share of a client given its uid
-    /// which is used to get the share from the verifier if the share is not in the share store
-    pub fn response_verifier<F>(&self, uid_list: Vec<u64>, get_share_from_verifier: F) -> ReplicaShare
-    where
-        F: Fn(u64) -> ReplicaShare,
-    {
-        let mut share = ReplicaShare::new_zero(self.index);
-        for uid in &uid_list {
-            if let Some(s) = self.share_store.get(*uid) {
-                share = share + s;
-            } else {
-                let s = get_share_from_verifier(*uid);
-                share = share + s;
-            }
-        }
-        let hash_val = hash_bit_vec(&uid_list, constants::BITS_NUM);
 
-        let mut bit_vector_xor = self.bit_vector.clone();
-        let mut s_blinding_xor = self.s_blinding.clone();
-
-        for i in 0..constants::BITS_NUM {
-            if hash_val[i] {
-                bit_vector_xor[i] = Scalar::one() - bit_vector_xor[i];
-                s_blinding_xor[i] = Scalar::one() - s_blinding_xor[i];
-            }
-        }
-
-        let mut noise = Scalar::zero();
-        let mut noise_proof =Scalar::zero();
-
-        for i in 0..constants::BITS_NUM {
-            noise += bit_vector_xor[i];
-            noise_proof += s_blinding_xor[i];
-        }
-
-        share.add_noise(noise, noise_proof)
-    }
-
+    
 
 }

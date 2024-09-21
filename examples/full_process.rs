@@ -13,7 +13,7 @@ use dp::replicated::{recon_shares, ReplicaShare};
 use std::time::Instant;
 
 
-const NUM_CLIENTS: usize = 500;
+const NUM_CLIENTS: usize = 100;
 
 fn main(){
 
@@ -41,10 +41,9 @@ fn main(){
     let mut provers: Vec<Prover<MemoryShareStore>> = share_stores
     .iter_mut()
     .enumerate()
-    .map(|(i, store)| Prover::new(i, &pp, sig_keys[i].to_bytes(), store))
+    .map(|(i, store)| Prover::new(i, &pp, sig_keys[i].to_bytes(),&pks, store))
     .collect();
 
-    //创建数据库相关
     let mut coms_v_ks = Vec::new();
     for i in 0..constants::PROVER_NUM {
         coms_v_ks.push(provers[i].get_coms_v_k());
@@ -62,11 +61,12 @@ fn main(){
         let mut client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
         client.send_proof_coms(&mut broad);
         for j in 0..constants::PROVER_NUM{
-            client.send_share(proverind, comm)
+            let tuple = client.send_share(j);
+            let res=provers[j].handle_client(tuple, &mut broad, &pp);
+            assert!(res);
         }
-
-
-        assert!(res);
+        
+        assert!(client.reveal_share(&mut broad));
 
     }
 
@@ -75,17 +75,14 @@ fn main(){
     let start2 = Instant::now();
 
     //验证过程
-    let uids=verifier.list_clients();
 
     let mut shares=Vec::new();
+    let (aggregated_com, hash_val) = verifier.check_all_users_and_sum_coms(&broad, &pp);
+
     for j in 0..constants::PROVER_NUM{
-        let verifier = &verifier;
-        let get_share_fn: Box<dyn Fn(u64) -> ReplicaShare> = Box::new(move |uid: u64| {
-            verifier.get_share(j, uid)
-        });
-        let res=provers[j].response_verifier(uids.clone(), get_share_fn);
-        shares.push(res.clone());
-        let res= verifier.handle_prover_share(j, res, verifier.aggregate_coms(), uids.clone(), &pp);
+        let share=provers[j].check_all_users_and_sum_share_and_add_noise(&pks, &broad, &pp);
+        shares.push(share.clone());
+        let res= verifier.handle_prover_share(j, share, aggregated_com.clone(), hash_val.clone(), &pp);
         assert!(res);
     }
 
