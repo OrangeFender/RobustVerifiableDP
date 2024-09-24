@@ -9,7 +9,7 @@ use dp::constants;
 use dp::sign;
 use dp::share_store::MemoryShareStore;
 use dp::user_store::MemoryUserStore;
-use dp::replicated::{recon_shares, ReplicaShare};
+use dp::replicated::recon_shares;
 use std::time::Instant;
 
 
@@ -51,14 +51,14 @@ fn main(){
 
     let mut broad = MemoryUserStore::new();
 
-    let mut verifier= Verifier::new(coms_v_ks, pks.clone());
+    let verifier= Verifier::new(coms_v_ks, pks.clone());
 
 
     //客户上传数据过程
 
     for i in 0..NUM_CLIENTS{
         let random_bool = rand::random();
-        let mut client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
+        let client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
         client.send_proof_coms(&mut broad);
         for j in 0..constants::PROVER_NUM{
             let tuple = client.send_share(j);
@@ -80,7 +80,7 @@ fn main(){
     let (aggregated_com, hash_val) = verifier.check_all_users_and_sum_coms(&broad, &pp);
 
     for j in 0..constants::PROVER_NUM{
-        let share=provers[j].check_all_users_and_sum_share_and_add_noise(&pks, &broad, &pp);
+        let share=provers[j].check_all_users_and_sum_share_and_add_noise( &broad, &pp);
         shares.push(share.clone());
         let res= verifier.handle_prover_share(j, share, aggregated_com.clone(), hash_val.clone(), &pp);
         assert!(res);

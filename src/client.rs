@@ -1,7 +1,5 @@
 use blstrs::Scalar;
-use ed25519_dalek::{Signature,PublicKey};
-use crate::sign;
-use crate::sign::MySignature;
+use ed25519_dalek::PublicKey;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::replicated::{ReplicaSecret, ReplicaCommitment, ReplicaShare};

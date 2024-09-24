@@ -1,7 +1,7 @@
 // ============================================================
 use blstrs::{G1Projective, Scalar};
 use ff::Field;
-use ed25519_dalek::{Keypair, PublicKey, Signature};
+use ed25519_dalek::{Keypair, PublicKey};
 use rand::Rng;
 use crate::constants;
 use crate::commitment::Commit;
@@ -83,12 +83,12 @@ impl <'a, D:ShareStore> Prover<'a, D> {
     }
     
 
-    pub fn check_all_users_and_sum_share_and_add_noise<B:UserStore>(&self,pks:&Vec<PublicKey>, broad:&B, pp:&PublicParameters) -> ReplicaShare {
+    pub fn check_all_users_and_sum_share_and_add_noise<B:UserStore>(&self, broad:&B, pp:&PublicParameters) -> ReplicaShare {
         let mut valid_user_ids=Vec::new();
         let mut sum_share = ReplicaShare::new_zero(self.index);
         let mut all_users = broad.iter_all_users().unwrap();
         while let Some(user) = all_users.next() {
-            if user.check_whole(pks, pp) {
+            if user.check_whole(&self.pks, pp) {
                 valid_user_ids.push(user.id);
                 match self.share_store.get(user.id) {
                     Some(share) => {

@@ -1,4 +1,4 @@
-use crate::{constants, public_parameters};
+use crate::constants;
 use crate::replicated::{ReplicaShare, ReplicaCommitment};
 use crate::sigma_or::ProofStruct;
 use crate::sign::{MySignature,verify_sig};

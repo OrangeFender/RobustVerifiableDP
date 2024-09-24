@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::RwLock;
-use crate::replicated::{ReplicaShare, ReplicaCommitment};
+use crate::replicated::ReplicaShare;
 
 pub trait ShareStore {
     fn put(&mut self, uid: u64, share: ReplicaShare);
