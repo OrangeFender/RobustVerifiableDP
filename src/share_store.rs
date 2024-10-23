@@ -7,7 +7,7 @@ pub trait ShareStore {
     fn get(&self, uid: u64) -> Option<ReplicaShare>;
     fn get_all(&self) -> Vec<(u64, ReplicaShare)>;
 }
-//TODO: 添加生命周期参数
+
 pub struct MemoryShareStore {
     shares: RwLock<HashMap<u64, ReplicaShare>>,
 }

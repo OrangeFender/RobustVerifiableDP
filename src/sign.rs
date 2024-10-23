@@ -1,22 +1,24 @@
-use ed25519_dalek::{Signature, Keypair, PublicKey, Signer, Verifier};
+use ed25519_dalek::{Signature, SigningKey, VerifyingKey, Signer, Verifier};
 use serde::{Serialize, Deserialize};
 use crate::replicated::ReplicaCommitment;
+use rand::rngs::OsRng;
 
 
-pub fn gen_keys() -> (Keypair, PublicKey) {
-    let pair = Keypair::generate(&mut rand::thread_rng());
-    let pk = pair.public;
+pub fn gen_keys() -> (SigningKey, VerifyingKey) {
+    let mut rng = OsRng;
+    let pair: SigningKey = SigningKey::generate(&mut rng);
+    let pk = pair.verifying_key();
     (pair, pk)
 }
 
-pub fn sign_verified_deal(sig_key:&Keypair, coms: &ReplicaCommitment) -> Signature {
+pub fn sign_verified_deal(sig_key:&SigningKey, coms: &ReplicaCommitment) -> Signature {
     // Return signature the dealing is valid
     let msg = bcs::to_bytes(&coms).unwrap();
     //return Some(sig_key.sign_arbitrary_message(msg.as_slice()));//去掉了some
     return sig_key.sign(msg.as_slice());
 }
 
-pub fn verify_sig(coms: &ReplicaCommitment, pk: &PublicKey, sig: Signature) -> bool {
+pub fn verify_sig(coms: &ReplicaCommitment, pk: &VerifyingKey, sig: Signature) -> bool {
     let msg = bcs::to_bytes(&coms).unwrap();
     pk.verify(msg.as_slice(), &sig).is_ok()
 }
@@ -30,7 +32,7 @@ impl From<Signature> for MySignature {
 }
 impl Into<Signature> for MySignature {
     fn into(self) -> Signature {
-        Signature::from_bytes(&self.0).unwrap()
+        Signature::from_bytes(&self.0.try_into().unwrap())
     }
 }
 impl Default for MySignature {

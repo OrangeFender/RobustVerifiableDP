@@ -10,8 +10,8 @@ use dp::sign;
 use dp::share_store::MemoryShareStore;
 use dp::user_store::MemoryUserStore;
 use dp::replicated::recon_shares;
+use dp::morra::{MorraBroad,MorraBroadCast};
 use std::time::Instant;
-
 
 const NUM_CLIENTS: usize = 100;
 
@@ -41,7 +41,7 @@ fn main(){
     let mut provers: Vec<Prover<MemoryShareStore>> = share_stores
     .iter_mut()
     .enumerate()
-    .map(|(i, store)| Prover::new(i, &pp, sig_keys[i].to_bytes(),&pks, store))
+    .map(|(i, store)| Prover::new(i, &pp, sig_keys[i].clone(),&pks, store))
     .collect();
 
     let mut coms_v_ks = Vec::new();
@@ -62,7 +62,7 @@ fn main(){
         client.send_proof_coms(&mut broad);
         for j in 0..constants::PROVER_NUM{
             let tuple = client.send_share(j);
-            let res=provers[j].handle_client(tuple, &mut broad, &pp);
+            let res=provers[j].handle_client(tuple, &mut broad);
             assert!(res);
         }
         
@@ -74,15 +74,25 @@ fn main(){
 
     let start2 = Instant::now();
 
+    //morra游戏过程
+    let mut morra_broad = MorraBroadCast::new(pp.clone());
+    for i in 0..constants::PROVER_NUM{
+        provers[i].morra_commit(&mut morra_broad);
+    }
+    for i in (0..constants::PROVER_NUM).rev(){
+        provers[i].morra_reveal(&mut morra_broad);
+    }
     //验证过程
 
     let mut shares=Vec::new();
-    let (aggregated_com, hash_val) = verifier.check_all_users_and_sum_coms(&broad, &pp);
+    let aggregated_com = verifier.check_all_users_and_sum_coms(&broad, &pp);
 
     for j in 0..constants::PROVER_NUM{
-        let share=provers[j].check_all_users_and_sum_share_and_add_noise( &broad, &pp);
-        shares.push(share.clone());
-        let res= verifier.handle_prover_share(j, share, aggregated_com.clone(), hash_val.clone(), &pp);
+        let share=provers[j].check_all_users_and_sum_share( &broad);
+        let morra_scalar= morra_broad.get_morra_scalar().unwrap();
+        let share_with_noise=provers[j].add_noise_from_morra_scalar(morra_scalar, share);
+        shares.push(share_with_noise.clone());
+        let res= verifier.handle_prover_share_with_morra_scalar(j, share_with_noise, aggregated_com.clone(), morra_broad.get_morra_scalar().unwrap(), &pp);
         assert!(res);
     }
 

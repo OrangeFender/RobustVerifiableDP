@@ -73,37 +73,37 @@ pub fn random_scalar<R>(rng: &mut R) -> Scalar
     biguint_to_scalar(&remainder)
 }
 
-/// Like `random_scalar`. Thought it was slower due to the rejection sampling, but it's not.
-pub fn random_scalar_alternative<R>(rng: &mut R) -> Scalar
-    where R: rand_core::RngCore + rand::Rng + rand_core::CryptoRng + rand::CryptoRng
-{
-    //
-    // TODO(Security): The following code pertains to the `rand_core_hell` hack and should be audited.
-    //
-    // Ideally, we would write the following sane code. But we can't due to
-    // `aptos-crypto`'s dependency on an older version of rand and rand-core than blstrs's version.
-    //
-    // ```
-    // let mut dk = Scalar::random(rng);
-    // while dk.is_zero() {
-    //     dk = Scalar::random(rng);
-    // }
-    // ```
-    //
-    let mut big_uint;
+// /// Like `random_scalar`. Thought it was slower due to the rejection sampling, but it's not.
+// pub fn random_scalar_alternative<R>(rng: &mut R) -> Scalar
+//     where R: rand_core::RngCore + rand::Rng + rand_core::CryptoRng + rand::CryptoRng
+// {
+//     //
+//     // TODO(Security): The following code pertains to the `rand_core_hell` hack and should be audited.
+//     //
+//     // Ideally, we would write the following sane code. But we can't due to
+//     // `aptos-crypto`'s dependency on an older version of rand and rand-core than blstrs's version.
+//     //
+//     // ```
+//     // let mut dk = Scalar::random(rng);
+//     // while dk.is_zero() {
+//     //     dk = Scalar::random(rng);
+//     // }
+//     // ```
+//     //
+//     let mut big_uint;
 
-    // The decryption key cannot be zero since it needs to have an inverse in the scalar field.
-    loop {
-        // TODO(Security): Make sure this correctly uses the RNG to pick the number uniformly in [0, SCALAR_FIELD_ORDER)
-        // NOTE(Alin): This uses rejection-sampling, which should be correct (e.g., https://cs.stackexchange.com/a/2578/54866)
-        big_uint = rng.gen_biguint_below(&SCALAR_FIELD_ORDER);
-        if !big_uint.is_zero() {
-            break
-        }
-    }
+//     // The decryption key cannot be zero since it needs to have an inverse in the scalar field.
+//     loop {
+//         // TODO(Security): Make sure this correctly uses the RNG to pick the number uniformly in [0, SCALAR_FIELD_ORDER)
+//         // NOTE(Alin): This uses rejection-sampling, which should be correct (e.g., https://cs.stackexchange.com/a/2578/54866)
+//         big_uint = rng.gen_biguint_below(&SCALAR_FIELD_ORDER);
+//         if !big_uint.is_zero() {
+//             break
+//         }
+//     }
 
-    biguint_to_scalar(&big_uint)
-}
+//     biguint_to_scalar(&big_uint)
+// }
 
 pub fn random_bit_scalar<R>(rng: &mut R) -> Scalar
     where R: rand_core::RngCore + rand::Rng + rand_core::CryptoRng + rand::CryptoRng
@@ -289,10 +289,15 @@ pub fn random_scalars_range<R>(mut rng: &mut R, u: u64, n: usize) -> Vec<Scalar>
     v
 }
 
-pub fn factorial(n: usize) -> usize {
-    (1..=n).product()
-}
-
-pub fn combination(n: usize, k: usize) -> usize {
-    factorial(n) / (factorial(k) * factorial(n - k))
+pub fn scalar_to_boolvec(s: Scalar,len:usize) -> Vec<bool> {
+    let bytes=s.to_bytes_le();
+    let mut res=Vec::new();
+    for i in 0..len {
+        let byte_index=i/8;
+        let bit_index=i%8;
+        let byte=bytes[byte_index];
+        let bit=(byte>>bit_index)&1;
+        res.push(bit==1);
+    }
+    res
 }

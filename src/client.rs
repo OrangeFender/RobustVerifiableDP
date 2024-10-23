@@ -1,5 +1,5 @@
 use blstrs::Scalar;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 use crate::replicated::{ReplicaSecret, ReplicaCommitment, ReplicaShare};
@@ -11,11 +11,11 @@ pub struct Client{
     secret: ReplicaSecret,
     coms: ReplicaCommitment,
     sigma_proof: ProofStruct,
-    pks: [PublicKey;constants::PROVER_NUM],
+    pks: [VerifyingKey;constants::PROVER_NUM],
 }
 
 impl Client{
-    pub fn new(id: u64, x: bool,pp:&PublicParameters,pks: [PublicKey;constants::PROVER_NUM]) -> Self {
+    pub fn new(id: u64, x: bool,pp:&PublicParameters,pks: [VerifyingKey;constants::PROVER_NUM]) -> Self {
         let x_scalar = Scalar::from(x as u64);
         let secret=ReplicaSecret::new(x_scalar.clone());
         let r_sum=secret.get_sum_r();

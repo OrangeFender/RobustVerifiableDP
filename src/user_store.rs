@@ -3,7 +3,7 @@ use crate::replicated::{ReplicaShare, ReplicaCommitment};
 use crate::sigma_or::ProofStruct;
 use crate::sign::{MySignature,verify_sig};
 use crate::public_parameters::PublicParameters;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::collections::HashSet;
@@ -20,7 +20,7 @@ pub struct User{
 
 
 impl User {
-    pub fn check_signature(&self, pks: &Vec<PublicKey>) -> HashSet<usize> {
+    pub fn check_signature(&self, pks: &Vec<VerifyingKey>) -> HashSet<usize> {
         let mut res = HashSet::new();
         for i in 0..constants::PROVER_NUM {
             if let Some(sig) = &self.signatures[i] {
@@ -43,7 +43,7 @@ impl User {
         res
     }
 
-    pub fn check_whole(&self, pks: &Vec<PublicKey>,pp: &PublicParameters) -> bool {
+    pub fn check_whole(&self, pks: &Vec<VerifyingKey>,pp: &PublicParameters) -> bool {
         let reconcom = self.commitment.get_sum();
         if !self.sigma_proof.verify(pp.get_commit_base(), reconcom){
             return false;
@@ -70,7 +70,7 @@ pub trait UserStore {
 
     fn iter_all_users(&self) -> Option<Box<dyn Iterator<Item = User>>>;
 
-    fn check_all_users(&self, pks: &Vec<PublicKey>, pp: &PublicParameters) -> Vec<u64>;
+    fn check_all_users(&self, pks: &Vec<VerifyingKey>, pp: &PublicParameters) -> Vec<u64>;
 }
 
 pub struct MemoryUserStore {
@@ -152,7 +152,7 @@ impl UserStore for MemoryUserStore {
         }
     }
 
-    fn check_all_users(&self, pks: &Vec<PublicKey>, pp: &PublicParameters) -> Vec<u64> {
+    fn check_all_users(&self, pks: &Vec<VerifyingKey>, pp: &PublicParameters) -> Vec<u64> {
         let mut valid_user_ids = Vec::new();
 
         if let Some(users_iter) = self.iter_all_users() {

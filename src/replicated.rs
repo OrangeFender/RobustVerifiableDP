@@ -256,7 +256,7 @@ pub fn recon_shares(shares:Vec<ReplicaShare>)->Option<Scalar>{
         if len == 0 {
             return None;
         }
-        let random_pick = thread_rng().gen_range(0, len);
+        let random_pick = thread_rng().gen_range(0..len);
         sum += splits[i][random_pick];
     }
     Some(sum)
