@@ -35,6 +35,8 @@ pub const SCALAR_NUM_BYTES : usize = 32;
 // TODO(rand_core_hell): Remove this once rand_core_hell is fixed.
 pub(crate) const SCALAR_FIELD_ORDER : Lazy<BigUint> = Lazy::new(get_scalar_field_order_as_biguint);
 
+pub const SCALAR_FIELD_ORDER_DIV_2 : Lazy<BigUint> = Lazy::new(|| biguint_div2(&SCALAR_FIELD_ORDER));
+
 #[inline]
 pub fn is_power_of_two(n: usize) -> bool {
     n != 0 && (n & (n - 1) == 0)
@@ -143,6 +145,16 @@ pub fn biguint_to_scalar(big_uint: &BigUint) -> Scalar {
         panic!("Deserialization of randomly-generated num_bigint::BigUint failed.");
     }
 }
+
+pub fn scalar_to_biguint(scalar: &Scalar) -> BigUint {
+    BigUint::from_bytes_le(&scalar.to_bytes_le())
+}
+
+/// Divides a `BigUint` by 2.
+pub fn biguint_div2(biguint: &BigUint) -> BigUint {
+    biguint >> 1
+}
+
 
 /// Hashes the specified `msg` and domain separation tag `dst` into a `Scalar` by computing a 512-bit
 /// number as SHA3-512(SHA3-512(dst) || msg) and reducing it modulo the order of the field.
@@ -289,15 +301,15 @@ pub fn random_scalars_range<R>(mut rng: &mut R, u: u64, n: usize) -> Vec<Scalar>
     v
 }
 
-pub fn scalar_to_boolvec(s: Scalar,len:usize) -> Vec<bool> {
-    let bytes=s.to_bytes_le();
-    let mut res=Vec::new();
-    for i in 0..len {
-        let byte_index=i/8;
-        let bit_index=i%8;
-        let byte=bytes[byte_index];
-        let bit=(byte>>bit_index)&1;
-        res.push(bit==1);
-    }
-    res
-}
+// pub fn scalar_to_boolvec(s: Scalar,len:usize) -> Vec<bool> {
+//     let bytes=s.to_bytes_le();
+//     let mut res=Vec::new();
+//     for i in 0..len {
+//         let byte_index=i/8;
+//         let bit_index=i%8;
+//         let byte=bytes[byte_index];
+//         let bit=(byte>>bit_index)&1;
+//         res.push(bit==1);
+//     }
+//     res
+// }

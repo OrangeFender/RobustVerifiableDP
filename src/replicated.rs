@@ -134,20 +134,19 @@ impl ReplicaShare{
         true
     }
 
-    pub fn check_com_with_noise(&self, base: &CommitBase, com:ReplicaCommitment, noise_commitment: G1Projective) -> bool {
+    pub fn check_com_with_noise(&self, base: &CommitBase, com:ReplicaCommitment, noise_commitment: Vec<G1Projective>) -> bool {
         for i in 0..SHARE_LEN {
             let ind = IND_ARR[self.ind][i];
-            if !base.vrfy(self.share[i], self.blindings[i], com.ind_value(ind) + noise_commitment) {
+            if !base.vrfy(self.share[i], self.blindings[i], com.ind_value(ind) + noise_commitment[i]) {
                 return false;
             }
         }
         true
     }
 
-    pub fn add_noise(&self, noise: Scalar, noise_proof: Scalar)-> ReplicaShare{
-        let share_with_noise: [Scalar; SHARE_LEN] = self.share.iter().map(|&s| s + noise).collect::<Vec<Scalar>>().try_into().unwrap();
-        let blindings_with_noise: [Scalar; SHARE_LEN] = self.blindings.iter().map(|&b| b + noise_proof).collect::<Vec<Scalar>>().try_into().unwrap();
-
+    pub fn add_noise(&self, noise: Vec<Scalar>, noise_proof: Vec<Scalar>)-> ReplicaShare{
+        let share_with_noise: [Scalar; SHARE_LEN] = self.share.iter().zip(noise.iter()).map(|(&s, &n)| s + n).collect::<Vec<Scalar>>().try_into().unwrap();
+        let blindings_with_noise: [Scalar; SHARE_LEN] = self.blindings.iter().zip(noise_proof.iter()).map(|(&b, &n)| b + n).collect::<Vec<Scalar>>().try_into().unwrap();
         ReplicaShare {
             ind: self.ind,
             share: share_with_noise,

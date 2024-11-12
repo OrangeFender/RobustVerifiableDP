@@ -9,15 +9,14 @@ use dp::constants;
 use dp::sign;
 use dp::share_store::MemoryShareStore;
 use dp::user_store::MemoryUserStore;
-use dp::replicated::recon_shares;
-use dp::morra::{MorraBroad,MorraBroadCast};
+use dp::replicated::{recon_shares,ReplicaShare};
 use std::time::Instant;
 
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 1000;
 
 fn main(){
-
-    let start = Instant::now();
+    println!("Number of clients is: {}", NUM_CLIENTS);
+    println!("Number of bits is: {}", constants::BITS_NUM);
 
     // Create public parameters
     //生成公共参数
@@ -56,58 +55,91 @@ fn main(){
 
     //客户上传数据过程
 
+    let mut client_prover_tuple: Vec<Vec<(u64, ReplicaShare)>>=Vec::new();
+
+    let start_of_VDDC = Instant::now();
+
+    let mut clients=Vec::new();
     for i in 0..NUM_CLIENTS{
         let random_bool = rand::random();
         let client = Client::new(i as u64 ,random_bool,&pp, pks.clone().try_into().unwrap());
         client.send_proof_coms(&mut broad);
+        let mut tuples=Vec::new();
         for j in 0..constants::PROVER_NUM{
-            let tuple = client.send_share(j);
+            let tuple: (u64, ReplicaShare) = client.send_share(j);
+            tuples.push(tuple);
+        }
+        client_prover_tuple.push(tuples);
+        clients.push(client);
+    }
+
+    let duration_client_1 = start_of_VDDC.elapsed();
+
+
+    let start_of_VDDP1 = Instant::now();
+
+    for i in 0..NUM_CLIENTS{
+        for j in 0..constants::PROVER_NUM-2{
+            let tuple=client_prover_tuple[i][j].clone();
             let res=provers[j].handle_client(tuple, &mut broad);
             assert!(res);
+            
         }
-        
-        assert!(client.reveal_share(&mut broad));
+    }
+    let duration_VDDP1 = start_of_VDDP1.elapsed();
 
+    let start_of_VDDC2 = Instant::now();
+    for i in 0..NUM_CLIENTS{
+        clients[i].reveal_share(&mut broad);
+    }
+    let duration_client_2 = start_of_VDDC2.elapsed();
+
+    let start_of_VDDP2 = Instant::now();
+
+    let user_ids = provers[0].check_all_users(&broad); // every prover's user_ids are the same
+    for j in 1..constants::PROVER_NUM-2{
+        provers[j].check_all_users(&broad);
     }
 
-    let duration = start.elapsed();
+    let duration_VDDP2 = start_of_VDDP2.elapsed();
 
-    let start2 = Instant::now();
+    
+    println!("Time elapsed in VDDC is: {:?}", duration_client_1+duration_client_2);
+    println!("Time elapsed in VDDP is: {:?}", duration_VDDP1+duration_VDDP2);
 
-    //morra游戏过程
-    let mut morra_broad = MorraBroadCast::new(pp.clone());
-    for i in 0..constants::PROVER_NUM{
-        provers[i].morra_commit(&mut morra_broad);
+
+    //gen public random bits
+    let mut rand_bits: Vec<Vec<bool>> = Vec::new();
+    for _ in 0..constants::SPLIT_LEN {
+        let bits: Vec<bool> = (0..constants::BITS_NUM).map(|_| rand::random()).collect();
+        rand_bits.push(bits);
     }
-    for i in (0..constants::PROVER_NUM).rev(){
-        provers[i].morra_reveal(&mut morra_broad);
-    }
+
     //验证过程
+    let start_of_VDPP = Instant::now();
 
-    let mut shares=Vec::new();
+    let mut shares_with_noise: Vec<ReplicaShare> = Vec::new();
+    for j in 0..constants::PROVER_NUM-2{
+        let share=provers[j].sum_share(&broad, &user_ids);
+        let share_with_noise=provers[j].add_noise_from_rand_bits(&rand_bits, share);
+        shares_with_noise.push(share_with_noise.clone());
+    }
+
+    let duration = start_of_VDPP.elapsed();
+    println!("Time elapsed in VDPP is: {:?}", duration);
+
+    let start_of_VDPV = Instant::now();
+
     let aggregated_com = verifier.check_all_users_and_sum_coms(&broad, &pp);
-
-    for j in 0..constants::PROVER_NUM{
-        let share=provers[j].check_all_users_and_sum_share( &broad);
-        let morra_scalar= morra_broad.get_morra_scalar().unwrap();
-        let share_with_noise=provers[j].add_noise_from_morra_scalar(morra_scalar, share);
-        shares.push(share_with_noise.clone());
-        let res= verifier.handle_prover_share_with_morra_scalar(j, share_with_noise, aggregated_com.clone(), morra_broad.get_morra_scalar().unwrap(), &pp);
+    for j in 0..constants::PROVER_NUM-2{
+        let res=verifier.handle_prover_share(j,shares_with_noise[j].clone(),aggregated_com.clone(),&rand_bits, &pp);
         assert!(res);
     }
+    let duration = start_of_VDPV.elapsed();
+    println!("Time elapsed in VDPV is: {:?}", duration);
 
-    let res=recon_shares(shares);
+    let res=recon_shares(shares_with_noise);
     assert!(res.is_some());
-    println!("Result in HEX is: {}",res.unwrap().to_string());
-
-
-    let duration2 = start2.elapsed();
-
-    println!("Number of clients is: {}", NUM_CLIENTS);
-
-    println!("Time elapsed in interaction with clients is: {:?}", duration);
-
-    println!("Time elapsed in sum clients, reconstruction and verification is: {:?}", duration2);
-
-    println!("All tests passed!");
+    //println!("Result in HEX is: {}",res.unwrap().to_string());
+    //println!("All tests passed!");
 }

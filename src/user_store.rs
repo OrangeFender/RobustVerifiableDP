@@ -4,6 +4,7 @@ use crate::sigma_or::ProofStruct;
 use crate::sign::{MySignature,verify_sig};
 use crate::public_parameters::PublicParameters;
 use ed25519_dalek::VerifyingKey;
+use serde::de;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::collections::HashSet;
@@ -24,13 +25,15 @@ impl User {
         let mut res = HashSet::new();
         for i in 0..constants::PROVER_NUM {
             if let Some(sig) = &self.signatures[i] {
-                if verify_sig(&self.commitment, &pks[i], sig.clone().into()) {
+                if verify_sig(&self.commitment, &pks[i], &sig.clone().into()) {
                     res.insert(i);
                 }
             }
         }
         res
     }
+
+
     pub fn check_share(&self, pp: &PublicParameters) -> HashSet<usize> {
         let mut res = HashSet::new();
         for i in 0..constants::PROVER_NUM {
@@ -53,6 +56,27 @@ impl User {
         //shares add sigs should be equal to 0..PROVER_NUM
         let union=shares.union(&sigs).cloned().collect::<HashSet<_>>();
         union.len()==constants::PROVER_NUM
+    }
+
+    pub fn check_whole_lazy(&self, pks: &Vec<VerifyingKey>, pp: &PublicParameters, proverid: usize) -> (bool,Option<ReplicaShare>) {
+        let shares = self.check_share(pp);
+        let sigs = self.check_signature(pks);
+        // shares and sigs should cover all provers
+        let union = shares.union(&sigs).cloned().collect::<HashSet<_>>();
+        if union.len() < constants::PROVER_NUM {
+            return (false, None);
+        }
+
+        if sigs.contains(&proverid) {
+            return (true, None);
+        }
+
+        let reconcom = self.commitment.get_sum();
+        if !self.sigma_proof.verify(pp.get_commit_base(), reconcom) {
+            return (false, None);
+        }
+
+        (true, self.share[proverid].clone())
     }
 }
 

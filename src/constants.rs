@@ -1,4 +1,4 @@
-pub const BITS_NUM:usize = 3;
+pub const BITS_NUM:usize = 1000;
 pub const PROVER_NUM:usize = 5;
 pub const THRESHOLD:usize = 2;
 pub const SHARE_LEN:usize = 6;
@@ -10,3 +10,4 @@ pub const IND_ARR: [[usize; 6];5] = [
     [1, 3, 5, 6, 8, 9],//2,4,6,7,9,10
     [2, 4, 5, 7, 8, 9],//3,5,6,8,9,10
 ];
+
