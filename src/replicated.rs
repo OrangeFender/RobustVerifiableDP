@@ -290,4 +290,6 @@ mod tests{
         println!("{}",res.unwrap().to_string());
         assert_eq!(res.unwrap(),Scalar::from(1 as u64))
     }
+
+    
 }

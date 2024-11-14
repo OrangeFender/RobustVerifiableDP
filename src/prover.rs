@@ -87,8 +87,6 @@ impl <'a, D:ShareStore> Prover<'a, D> {
     }
     
 
-
-
     pub fn check_all_users_and_sum_share<B:UserStore>(&self, broad:&B) -> ReplicaShare {
         let mut valid_user_ids=Vec::new();
         let mut sum_share = ReplicaShare::new_zero(self.index);
