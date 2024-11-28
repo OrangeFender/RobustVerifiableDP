@@ -1,42 +1,50 @@
-use blstrs::{G1Projective, Scalar};
-use group::Group;
-use crate::DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION;
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::scalar::Scalar;
 
 
 #[derive(Clone)]
 pub struct CommitBase{
-    pub bases: [G1Projective; 2],
+    pub g: RistrettoPoint,
+    pub h: RistrettoPoint,
 }
 
 impl CommitBase{
     pub fn new(seed: &[u8]) -> Self {
-        let g = G1Projective::generator();
-        let h = G1Projective::hash_to_curve(seed, DST_ROBUST_DP_PUBLIC_PARAMS_GENERATION.as_slice(), b"h");
+        let g = RISTRETTO_BASEPOINT_POINT;
+        let h = RistrettoPoint::from_uniform_bytes(b"this is another secret that should never be disclosed to anyone ");
         Self {
-            bases: [g, h],
+            g,
+            h,
         }
     }
 
-    pub fn get_g(&self) -> G1Projective {
-        self.bases[0]
+    pub fn get_g(&self) -> RistrettoPoint {
+        self.g
     }
 
-    pub fn get_h(&self) -> G1Projective {
-        self.bases[1]
+    pub fn get_h(&self) -> RistrettoPoint {
+        self.h
     }
 }
 
 pub trait Commit{
-    fn commit(&self, message:Scalar, blinding:Scalar) -> G1Projective;
-    fn vrfy(&self, message:Scalar, blinding:Scalar, com:G1Projective) -> bool;
+    fn commit(&self, message:Scalar, blinding:Scalar) -> RistrettoPoint;
+    fn vrfy(&self, message:Scalar, blinding:Scalar, com:RistrettoPoint) -> bool;
 }
 
 impl Commit for CommitBase{
-    fn commit(&self, message:Scalar, blinding:Scalar) -> G1Projective {
-        G1Projective::multi_exp(&self.bases, &[message, blinding])
+    fn commit(&self, message:Scalar, blinding:Scalar) -> RistrettoPoint {
+        let gm = &message * &self.g;
+        let hr = &blinding * &self.h;
+    
+        let ans = gm + hr;
+        return ans
     }
-    fn vrfy(&self, message:Scalar, blinding:Scalar, com:G1Projective) -> bool {
-        let com_prime = G1Projective::multi_exp(&self.bases, &[message, blinding]);
+    fn vrfy(&self, message:Scalar, blinding:Scalar, com:RistrettoPoint) -> bool {
+        let gm = &message * &self.g;
+        let hr = &blinding * &self.h;
+        let com_prime = gm + hr;
         com == com_prime
     }
 }

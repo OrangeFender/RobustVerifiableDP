@@ -1,5 +1,5 @@
 use crate::commitment::CommitBase;
-use blstrs::G1Projective;
+use curve25519_dalek::ristretto::RistrettoPoint;
 
 #[derive(Clone)]
 pub struct PublicParameters {
@@ -18,11 +18,11 @@ impl PublicParameters {
         &self.commit_base
     }
 
-    pub fn get_g(&self) -> G1Projective {
-        self.commit_base.bases[0]
+    pub fn get_g(&self) -> RistrettoPoint {
+        self.commit_base.get_g()
     }
 
-    pub fn get_h(&self) -> G1Projective {
-        self.commit_base.bases[1]
+    pub fn get_h(&self) -> RistrettoPoint {
+        self.commit_base.get_h()
     }
 }

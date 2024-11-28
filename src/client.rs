@@ -1,4 +1,4 @@
-use blstrs::Scalar;
+use curve25519_dalek::Scalar;
 use ed25519_dalek::VerifyingKey;
 use crate::public_parameters::PublicParameters;
 use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
@@ -20,12 +20,13 @@ impl Client{
         let secret=ReplicaSecret::new(x_scalar.clone());
         let r_sum=secret.get_sum_r();
         let coms=secret.commit(pp.get_commit_base().clone());
+        
         let proof;
         if x{
-            proof = create_proof_1(&pp.get_commit_base(), x_scalar.clone(), r_sum.clone());
+            proof = create_proof_1(&pp.get_commit_base(), r_sum.clone());
         }
         else{
-            proof = create_proof_0(&pp.get_commit_base(), x_scalar.clone(), r_sum.clone());
+            proof = create_proof_0(&pp.get_commit_base(), r_sum.clone());
         }
 
         Self {

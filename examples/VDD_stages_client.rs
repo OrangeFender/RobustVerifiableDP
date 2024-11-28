@@ -10,13 +10,11 @@ use dp::sigma_or::{create_proof_1, create_proof_0};
 
 use curve25519_dalek::scalar::Scalar;
 
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 1;
 const BAD_PROVERS: usize = 0;
 
 
 fn main(){
-    assert!(BAD_PROVERS<constants::PROVER_NUM-constants::THRESHOLD);
-
     println!("Number of clients is: {}", NUM_CLIENTS);
 
     // Create public parameters

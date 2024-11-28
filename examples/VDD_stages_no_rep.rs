@@ -7,16 +7,14 @@ use dp::sign;
 use dp::replicated::{ReplicaSecret,ReplicaCommitment};
 use std::time::Instant;
 use dp::sigma_or::{create_proof_1, create_proof_0};
+use dp::util::random_scalars;
 
 use curve25519_dalek::scalar::Scalar;
 
-const NUM_CLIENTS: usize = 100;
-const BAD_PROVERS: usize = 0;
+const NUM_CLIENTS: usize = 1000000;
 
 
 fn main(){
-    assert!(BAD_PROVERS<constants::PROVER_NUM-constants::THRESHOLD);
-
     println!("Number of clients is: {}", NUM_CLIENTS);
 
     // Create public parameters
@@ -76,7 +74,7 @@ fn main(){
         let coms=comsvec[i].clone();
         share.check_com(pp.get_commit_base(), coms);
     }
-    println!("Time elapsed in verifying shares is: {:?}", share_verify.elapsed());
+    println!("Time elapsed in verifying shares is: {:?}", share_verify.elapsed()/constants::SHARE_LEN.try_into().unwrap());
 
     let proof_verify= Instant::now();
     for i in 0..NUM_CLIENTS{
@@ -86,50 +84,22 @@ fn main(){
     }
     println!("Time elapsed in verifying proofs is: {:?}", proof_verify.elapsed());
 
+    let mut rng = rand::thread_rng();
+    let shares = random_scalars(NUM_CLIENTS, &mut rng);
 
-    let (skey,vkey)= sign::gen_keys();
-    let mut sig_vec= Vec::new();
-
-    let start_ack= Instant::now();
-    for i in 0..NUM_CLIENTS{
-        let coms=comsvec[i].clone();
-        let sig=sign::sign_verified_deal(&skey, &coms);
-        sig_vec.push(sig);
+    let start_agg_shares = Instant::now();
+    let mut sum=shares[0].clone();
+    for i in 1..NUM_CLIENTS
+    {
+        sum+=shares[i];
     }
-
-    println!("Time elapsed in ack is: {:?}", start_ack.elapsed());
-    
-
-    let start_ack_verify= Instant::now();
-    for i in 0..NUM_CLIENTS{
-        for _ in 0..constants::PROVER_NUM-BAD_PROVERS{//here repeat to simulate multiple provers
-            let coms=comsvec[i].clone();
-            let sig=sig_vec[i].clone();
-            sign::verify_sig(&coms,&vkey, &sig);
-        }
-        for _ in 0..BAD_PROVERS{
-            let share=sharesvec[i][0].clone();
-            let coms=comsvec[i].clone();
-            share.check_com(pp.get_commit_base(), coms);
-        }
-    }
-    println!("Time elapsed in ack verify and reveal share verify is: {:?}", start_ack_verify.elapsed());
+    println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed()/NUM_CLIENTS.try_into().unwrap());
 
     let start_agg_coms = Instant::now();
     let mut coms_sum=ReplicaCommitment::new_zero();
     for i in 0..NUM_CLIENTS{
-        let coms=comsvec[i].clone();
-        coms_sum=coms_sum+coms;
+        coms_sum=coms_sum+comsvec[i].clone();
     }
     println!("Time elapsed in aggregating commitments is: {:?}", start_agg_coms.elapsed());
-
-    let start_agg_shares = Instant::now();
-    let mut sum=sharesvec[0][0].clone();
-    for i in 1..NUM_CLIENTS
-    {
-        sum=sum+sharesvec[i][0].clone();
-    }
-    println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed()/NUM_CLIENTS.try_into().unwrap());
-
     
 }

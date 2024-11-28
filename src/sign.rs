@@ -16,13 +16,13 @@ pub fn gen_keys() -> (SigningKey, VerifyingKey) {
 
 pub fn sign_verified_deal(sig_key:&SigningKey, coms: &ReplicaCommitment) -> Signature {
     // Return signature the dealing is valid
-    let msg = bcs::to_bytes(&coms).unwrap();
+    let msg = coms.to_bytes();
     //return Some(sig_key.sign_arbitrary_message(msg.as_slice()));//去掉了some
     return sig_key.sign(msg.as_slice());
 }
 
 pub fn verify_sig(coms: &ReplicaCommitment, pk: &VerifyingKey, sig: &Signature) -> bool {
-    let msg = bcs::to_bytes(&coms).unwrap();
+    let msg = coms.to_bytes();
     pk.verify(msg.as_slice(), &sig).is_ok()
 }
 

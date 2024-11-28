@@ -1,23 +1,27 @@
 // ============================================================
-use blstrs::{G1Projective, Scalar};
+use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use ff::Field;
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::Rng;
+use sha3::digest::typenum::bit;
 use crate::{constants, util};
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::sign::sign_verified_deal;
 use crate::share_store::ShareStore;
 use crate::replicated::ReplicaShare;
-use crate::util::random_scalars;
+use crate::util::{random_scalars, scalar_one, scalar_zero};
 use crate::user_store::UserStore;
+use crate::sigma_or::{ProofStruct, create_proof_0, create_proof_1};
 
 pub struct Prover<'a, D:ShareStore> {
     pp: PublicParameters,
     index: usize,
     bit_vector: Vec<Vec<Scalar>>, //随机比特向量
     s_blinding: Vec<Vec<Scalar>>,
-    coms_v_k: Vec<Vec<G1Projective>>,
+    coms_v_k: Vec<Vec<RistrettoPoint>>,
+    bit_proofs:Vec<Vec<ProofStruct>>,
     sig_key: SigningKey,
     pks: Vec<VerifyingKey>,
     share_store: &'a mut D, //the database of shares from clients
@@ -29,19 +33,23 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         let mut rng = rand::thread_rng();
         let mut s_blinding=Vec::new();
         let mut bit_vector = Vec::new();
-
+        let mut bit_proofs=Vec::new();
 
         for _ in 0..constants::SHARE_LEN {
             s_blinding.push(random_scalars(constants::BITS_NUM, &mut rng));
             bit_vector.push(Vec::new());
+            bit_proofs.push(Vec::new());
         }
 
         for i in 0..constants::SHARE_LEN {
-            for _ in 0..constants::BITS_NUM {
+            for j in 0..constants::BITS_NUM {
                 if rng.gen_bool(0.5) {
-                    bit_vector[i].push(Scalar::one());
+                    bit_vector[i].push(scalar_one());
+                    bit_proofs[i].push(create_proof_1(&pp.get_commit_base(), s_blinding[i][j]));
+
                 } else {
-                    bit_vector[i].push(Scalar::zero());
+                    bit_vector[i].push(scalar_zero());
+                    bit_proofs[i].push(create_proof_0(&pp.get_commit_base(), s_blinding[i][j]));
                 }
             }
         }
@@ -61,6 +69,7 @@ impl <'a, D:ShareStore> Prover<'a, D> {
             bit_vector,
             s_blinding,
             coms_v_k,
+            bit_proofs,
             sig_key,
             pks:pks.clone(),
             share_store,
@@ -68,13 +77,20 @@ impl <'a, D:ShareStore> Prover<'a, D> {
 
     }
     
-    pub fn get_coms_v_k(&self) -> Vec<Vec<G1Projective>> {
+    pub fn get_coms_v_k(&self) -> Vec<Vec<RistrettoPoint>> {
         self.coms_v_k.clone()
     }
     
+    pub fn get_bit_proofs(&self) -> Vec<Vec<ProofStruct>> {
+        self.bit_proofs.clone()
+    }
+
     pub fn handle_client<'b, B :UserStore>(&mut self,client:(u64, ReplicaShare), broad: &'b mut B) -> bool {
         let (id, replica_share): (u64, ReplicaShare) = client;
-        let (coms, proof) = broad.get_user_commitment_proof(id).unwrap();
+        let (coms, proof) = match broad.get_user_commitment_proof(id) {
+            Some(value) => value,
+            None => return false,
+        };
         let recon=coms.get_sum();
         if !proof.verify(self.pp.get_commit_base(), recon) {
             return false;
@@ -146,8 +162,8 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         for i in 0..constants::SHARE_LEN {
             for j in 0..constants::BITS_NUM {
                 if pub_rand_bits[i][j] {
-                    bit_vector_xor[i][j] = Scalar::one() - bit_vector_xor[i][j];
-                    s_blinding_xor[i][j] = Scalar::one() - s_blinding_xor[i][j];
+                    bit_vector_xor[i][j] = scalar_one() - bit_vector_xor[i][j];
+                    s_blinding_xor[i][j] = scalar_one() - s_blinding_xor[i][j];
                 }
             }
         }
@@ -155,8 +171,8 @@ impl <'a, D:ShareStore> Prover<'a, D> {
         let mut noise = Vec::new();
         let mut noise_proof = Vec::new();
         for _ in 0..constants::SHARE_LEN {
-            noise.push(Scalar::zero());
-            noise_proof.push(Scalar::zero());
+            noise.push(scalar_zero());
+            noise_proof.push(scalar_zero());
         }
         for i in 0..constants::SHARE_LEN {
             for j in 0..constants::BITS_NUM {

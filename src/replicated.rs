@@ -1,8 +1,10 @@
-use blstrs::{G1Projective, Scalar};
+use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::traits::Identity;
 use ff::Field;
 use group::Group;
 use crate::constants::{SPLIT_LEN,SHARE_LEN,IND_ARR};
-use crate::util::random_scalars;
+use crate::util::{random_scalars, scalar_one, scalar_zero};
 use rand::Rng; // Import the Rng trait
 use rand::thread_rng;
 use crate::commitment::{Commit,CommitBase};
@@ -17,7 +19,7 @@ pub struct ReplicaSecret {
 }
 
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
 
 pub struct ReplicaShare{
     ind:usize,
@@ -34,8 +36,8 @@ impl ReplicaSecret{
         let splits_vec = random_scalars(SPLIT_LEN - 1, &mut rng);
         let blindings_vec = random_scalars(SPLIT_LEN, &mut rng);
 
-        let mut splits: [Scalar; SPLIT_LEN] = [Scalar::zero(); SPLIT_LEN];
-        let mut blindings: [Scalar; SPLIT_LEN] = [Scalar::zero(); SPLIT_LEN];
+        let mut splits: [Scalar; SPLIT_LEN] = [s; SPLIT_LEN];
+        let mut blindings: [Scalar; SPLIT_LEN] = [scalar_zero(); SPLIT_LEN];
 
         // 将 Vec 转换为数组
         for i in 0..(SPLIT_LEN - 1) {
@@ -45,7 +47,7 @@ impl ReplicaSecret{
             blindings[i] = blindings_vec[i];
         }
 
-        let mut sum = Scalar::zero();
+        let mut sum = scalar_zero();
         for i in 0..(SPLIT_LEN - 1) {
             sum += splits[i];
         }
@@ -53,7 +55,7 @@ impl ReplicaSecret{
         splits[SPLIT_LEN - 1] = last;
 
 
-        let mut blindings_sum = Scalar::zero();
+        let mut blindings_sum = scalar_zero();
         for i in 0..splits_len {
             blindings_sum += blindings[i];
         }
@@ -75,8 +77,8 @@ impl ReplicaSecret{
     }
 
     pub fn get_share(&self, ind:usize) -> ReplicaShare {
-        let mut share: [Scalar; SHARE_LEN] = [Scalar::zero(); SHARE_LEN];
-        let mut blindings: [Scalar; SHARE_LEN] = [Scalar::zero(); SHARE_LEN];
+        let mut share: [Scalar; SHARE_LEN] = [scalar_zero(); SHARE_LEN];
+        let mut blindings: [Scalar; SHARE_LEN] = [scalar_zero(); SHARE_LEN];
 
         for j in 0..SHARE_LEN {
             let i=IND_ARR[ind][j];//注意这里的索引顺序
@@ -91,7 +93,7 @@ impl ReplicaSecret{
         }
     }
     
-    pub fn commit(&self,base:CommitBase ) -> Vec<G1Projective> {
+    pub fn commit(&self,base:CommitBase ) -> Vec<RistrettoPoint> {
         let mut coms = Vec::new();
         for i in 0..SPLIT_LEN {
             coms.push(base.commit(self.splits[i], self.blindings[i]));
@@ -106,8 +108,8 @@ impl ReplicaSecret{
 
 impl ReplicaShare{
     pub fn new_zero(ind:usize) -> Self {
-        let share = [Scalar::zero(); SHARE_LEN];
-        let blindings = [Scalar::zero(); SHARE_LEN];
+        let share = [scalar_zero(); SHARE_LEN];
+        let blindings = [scalar_zero(); SHARE_LEN];
         Self {
             ind,
             share,
@@ -134,7 +136,7 @@ impl ReplicaShare{
         true
     }
 
-    pub fn check_com_with_noise(&self, base: &CommitBase, com:ReplicaCommitment, noise_commitment: Vec<G1Projective>) -> bool {
+    pub fn check_com_with_noise(&self, base: &CommitBase, com:ReplicaCommitment, noise_commitment: Vec<RistrettoPoint>) -> bool {
         for i in 0..SHARE_LEN {
             let ind = IND_ARR[self.ind][i];
             if !base.vrfy(self.share[i], self.blindings[i], com.ind_value(ind) + noise_commitment[i]) {
@@ -157,8 +159,8 @@ impl ReplicaShare{
 
 impl Default for ReplicaShare {
     fn default() -> Self {
-        let share = [Scalar::zero(); SHARE_LEN];
-        let blindings = [Scalar::zero(); SHARE_LEN];
+        let share = [scalar_zero(); SHARE_LEN];
+        let blindings = [scalar_zero(); SHARE_LEN];
         Self {
             ind: 0,
             share,
@@ -190,40 +192,48 @@ impl Add for ReplicaShare {
 
 
 
-#[derive(Clone, Serialize, Deserialize)]
-
+#[derive(Clone)]
 pub struct ReplicaCommitment{
-    com:Vec<G1Projective>,
+    com: [RistrettoPoint; SPLIT_LEN],
 }
 
 impl ReplicaCommitment{
-    pub fn new(com:Vec<G1Projective>) -> Self {
+    pub fn new(com:Vec<RistrettoPoint>) -> Self {
         if com.len() != SPLIT_LEN {
             panic!("Invalid length of commitment");
         }
         Self {
-            com,
+            com: com.try_into().expect("Invalid length of commitment"),
         }
     }
 
-    pub fn ind_value(&self,ind:usize) -> G1Projective {
+    pub fn ind_value(&self,ind:usize) -> RistrettoPoint {
         self.com[ind]
     }
 
-    pub fn get_sum(&self) -> G1Projective {
-        let mut sum = G1Projective::identity();
-        for i in 0..SPLIT_LEN {
+    pub fn get_sum(&self) -> RistrettoPoint {
+        let mut sum = self.com[0];
+        for i in 1..SPLIT_LEN {
             sum += self.com[i];
         }
         sum
     }
 
     pub fn new_zero() -> Self {
-        let com = vec![G1Projective::identity(); SPLIT_LEN];
+        let com = vec![RistrettoPoint::identity(); SPLIT_LEN];
         Self {
-            com,
+            com: com.try_into().expect("Invalid length of commitment"),
         }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for i in 0..SPLIT_LEN {
+            bytes.extend_from_slice(&self.com[i].compress().to_bytes());
+        }
+        bytes
+    }
+    
 
     
 }
@@ -232,7 +242,7 @@ impl Add for ReplicaCommitment {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        let com = self.com.iter().zip(other.com.iter()).map(|(a, b)| *a + *b).collect::<Vec<G1Projective>>();
+        let com = self.com.iter().zip(other.com.iter()).map(|(a, b)| *a + *b).collect::<Vec<RistrettoPoint>>().try_into().expect("Invalid length of commitment");
 
         Self {
             com,
@@ -249,7 +259,7 @@ pub fn recon_shares(shares:Vec<ReplicaShare>)->Option<Scalar>{
         }
     }
 
-    let mut sum = Scalar::zero();
+    let mut sum = scalar_zero();
     for i in 0..SPLIT_LEN {
         let len = splits[i].len();
         if len == 0 {
@@ -265,10 +275,11 @@ pub fn recon_shares(shares:Vec<ReplicaShare>)->Option<Scalar>{
 
 #[cfg(test)]
 mod tests{
-    use blstrs::Scalar;
-    use ff::Field;
+    use std::fmt::Debug;
 
+    use curve25519_dalek::scalar::Scalar;
     use crate::constants;
+    use crate::util::{scalar_one, scalar_zero};
 
     use super::{recon_shares, ReplicaSecret};
 
@@ -276,18 +287,18 @@ mod tests{
     fn test_recon(){
         let secret = ReplicaSecret::new(Scalar::from(1 as u64));
         let splits=secret.get_splits();
-        let mut sum=Scalar::zero();
+        let mut sum=scalar_zero();
         for i in 0..constants::SPLIT_LEN{
             sum+=splits[i];
         }
-        println!("sum:{}",sum.to_string());
+        println!("sum:{:?}", sum);
         let mut shares =Vec::new();
         for i in 1..constants::PROVER_NUM{
             shares.push(secret.get_share(i))
         }
 
         let res=recon_shares(shares);
-        println!("{}",res.unwrap().to_string());
+        println!("res:{:?}", res);
         assert_eq!(res.unwrap(),Scalar::from(1 as u64))
     }
 
