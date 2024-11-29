@@ -4,7 +4,6 @@ use crate::replicated::ReplicaCommitment;
 use rand::rngs::OsRng;
 use std::thread;
 use std::sync::mpsc;
-use std::sync::Arc;
 
 
 pub fn gen_keys() -> (SigningKey, VerifyingKey) {

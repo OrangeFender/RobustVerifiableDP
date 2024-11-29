@@ -1,6 +1,6 @@
 extern crate robust_verifiable_dp as dp;
 
-use dp::util::{random_scalars, scalar_one, scalar_zero};
+use dp::util::{random_scalars, scalar_zero};
 
 use std::time::Instant;
 

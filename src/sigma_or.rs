@@ -1,7 +1,6 @@
 // 功能：
 // 1. Client传入秘密份额(f_i(0), r_{i,0})后，create_or_proof；这里需要实现一个判断是0还是1
 // 2. Prover和Verifier执行验证verify_or_proof
-use rand::thread_rng;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use rand_core::OsRng;
@@ -12,7 +11,6 @@ use sha3::{Digest, Sha3_256};
 
 use crate::commitment::{CommitBase, Commit};
 use crate::util::*;
-use serde::{Serialize, Deserialize};
 
 #[derive(Clone)]
 pub struct  ProofStruct{

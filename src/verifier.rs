@@ -1,10 +1,9 @@
 use curve25519_dalek::traits::Identity;
 use ed25519_dalek::VerifyingKey;
-use crate::{constants, util};
+use crate::constants;
 use crate::public_parameters::PublicParameters;
 use crate::replicated::{ReplicaShare, ReplicaCommitment};
 use crate::user_store::UserStore;
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 pub struct Verifier {
@@ -26,8 +25,8 @@ impl Verifier {
         let mut sum_com = ReplicaCommitment::new_zero();
         let mut all_users = broad.iter_all_users().unwrap();
         while let Some(user) = all_users.next() {
-            //if user.check_whole(&self.pks, pp) {
-                if  true{
+            if user.check_whole(&self.pks, pp) {
+            //    if  true{
                 valid_user_ids.push(user.id);
                 sum_com = sum_com + user.commitment.clone();
             }

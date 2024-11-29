@@ -1,11 +1,9 @@
 // ============================================================
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use ff::Field;
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::Rng;
-use sha3::digest::typenum::bit;
-use crate::{constants, util};
+use crate::constants;
 use crate::commitment::Commit;
 use crate::public_parameters::PublicParameters;
 use crate::sign::sign_verified_deal;

@@ -15,8 +15,8 @@ const BAD_PROVERS: usize = 0;
 
 
 fn main(){
-    println!("Number of clients is: {}", NUM_CLIENTS);
 
+    println!("Number of clients is: {}", NUM_CLIENTS);
     // Create public parameters
     //生成公共参数
     let pp = PublicParameters::new( b"seed");
@@ -34,8 +34,8 @@ fn main(){
     let mut xvec = Vec::new();
     let mut secretvec = Vec::new();
 
-    let RSS= Instant::now();
-    for i in 0..NUM_CLIENTS{
+    let rss= Instant::now();
+    for _ in 0..NUM_CLIENTS{
         let x: bool = rand::random();
         xvec.push(x);
         let x_scalar = Scalar::from(x as u64);
@@ -49,7 +49,7 @@ fn main(){
         sharesvec.push(shares);
         secretvec.push(secret);
     }
-    println!("Time elapsed in creating shares and commitments is: {:?}", RSS.elapsed());
+    println!("Time elapsed in creating shares and commitments is: {:?}", rss.elapsed());
 
     
 

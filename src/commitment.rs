@@ -1,6 +1,7 @@
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Sha3_512};
 
 
 #[derive(Clone)]
@@ -11,8 +12,11 @@ pub struct CommitBase{
 
 impl CommitBase{
     pub fn new(seed: &[u8]) -> Self {
+        let mut hasher = Sha3_512::new();
+        hasher.update(seed);
+        let h = RistrettoPoint::from_hash(hasher);
         let g = RISTRETTO_BASEPOINT_POINT;
-        let h = RistrettoPoint::from_uniform_bytes(b"this is another secret that should never be disclosed to anyone ");
+
         Self {
             g,
             h,

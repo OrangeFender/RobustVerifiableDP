@@ -10,7 +10,7 @@ use dp::sigma_or::{create_proof_1, create_proof_0};
 
 use curve25519_dalek::scalar::Scalar;
 
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 10000;
 const BAD_PROVERS: usize = 0;
 
 
@@ -18,6 +18,9 @@ fn main(){
     assert!(BAD_PROVERS<constants::PROVER_NUM-constants::THRESHOLD);
 
     println!("Number of clients is: {}", NUM_CLIENTS);
+    println!("Number of bad provers is: {}", BAD_PROVERS);
+    println!("Number of provers is: {}", constants::PROVER_NUM);
+    println!("Threshold is: {}", constants::THRESHOLD);
 
     // Create public parameters
     //生成公共参数
@@ -36,8 +39,8 @@ fn main(){
     let mut xvec = Vec::new();
     let mut secretvec = Vec::new();
 
-    let RSS= Instant::now();
-    for i in 0..NUM_CLIENTS{
+    let rss= Instant::now();
+    for _ in 0..NUM_CLIENTS{
         let x: bool = rand::random();
         xvec.push(x);
         let x_scalar = Scalar::from(x as u64);
@@ -51,7 +54,7 @@ fn main(){
         sharesvec.push(shares);
         secretvec.push(secret);
     }
-    println!("Time elapsed in creating shares and commitments is: {:?}", RSS.elapsed());
+    println!("Time elapsed in creating shares and commitments is: {:?}", rss.elapsed());
 
     
 
@@ -107,13 +110,18 @@ fn main(){
             let sig=sig_vec[i].clone();
             sign::verify_sig(&coms,&vkey, &sig);
         }
+    }
+    println!("Time elapsed in ack verify is: {:?}", start_ack_verify.elapsed());
+
+    let start_reveal= Instant::now();
+    for i in 0..NUM_CLIENTS{
         for _ in 0..BAD_PROVERS{
             let share=sharesvec[i][0].clone();
             let coms=comsvec[i].clone();
             share.check_com(pp.get_commit_base(), coms);
         }
     }
-    println!("Time elapsed in ack verify and reveal share verify is: {:?}", start_ack_verify.elapsed());
+    println!("Time elapsed in reveal share verify is: {:?}", start_reveal.elapsed());
 
     let start_agg_coms = Instant::now();
     let mut coms_sum=ReplicaCommitment::new_zero();
@@ -129,7 +137,7 @@ fn main(){
     {
         sum=sum+sharesvec[i][0].clone();
     }
-    println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed()/NUM_CLIENTS.try_into().unwrap());
+    println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed());
 
     
 }

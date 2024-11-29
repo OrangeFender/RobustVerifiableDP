@@ -4,7 +4,6 @@ use crate::sigma_or::ProofStruct;
 use crate::sign::{MySignature,verify_sig};
 use crate::public_parameters::PublicParameters;
 use ed25519_dalek::VerifyingKey;
-use serde::de;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::collections::HashSet;

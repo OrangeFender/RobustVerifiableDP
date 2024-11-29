@@ -1,5 +1,4 @@
 use curve25519_dalek::scalar::Scalar;
-use num_traits::ops::bytes;
 
 
 pub fn random_scalar(rng: &mut impl rand::Rng)->Scalar{

@@ -46,7 +46,7 @@ fn main(){
     }
     println!("Time elapsed in creating commitments is: {:?}", start_of_com.elapsed());
 
-    let start_of_OR = Instant::now();
+    let start_of_or = Instant::now();
     for j in 0..constants::BITS_NUM {
         if j<constants::BITS_NUM/2 {
             bit_vector[0].push(scalar_one());
@@ -58,7 +58,7 @@ fn main(){
         }
     }
     
-    println!("Time elapsed in creating OR proofs is: {:?}", start_of_OR.elapsed());
+    println!("Time elapsed in creating OR proofs is: {:?}", start_of_or.elapsed());
 
     let start_of_verify = Instant::now();
     for j in 0..constants::BITS_NUM {

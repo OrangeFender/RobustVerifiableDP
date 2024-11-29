@@ -1,14 +1,11 @@
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::traits::Identity;
-use ff::Field;
-use group::Group;
 use crate::constants::{SPLIT_LEN,SHARE_LEN,IND_ARR};
-use crate::util::{random_scalars, scalar_one, scalar_zero};
+use crate::util::{random_scalars, scalar_zero};
 use rand::Rng; // Import the Rng trait
 use rand::thread_rng;
 use crate::commitment::{Commit,CommitBase};
-use serde::{Serialize, Deserialize};
 
 
 pub struct ReplicaSecret {
@@ -275,11 +272,10 @@ pub fn recon_shares(shares:Vec<ReplicaShare>)->Option<Scalar>{
 
 #[cfg(test)]
 mod tests{
-    use std::fmt::Debug;
 
     use curve25519_dalek::scalar::Scalar;
     use crate::constants;
-    use crate::util::{scalar_one, scalar_zero};
+    use crate::util::scalar_zero;
 
     use super::{recon_shares, ReplicaSecret};
 

@@ -14,7 +14,10 @@ use curve25519_dalek::RistrettoPoint;
 
 
 fn main(){
+
     println!("Number of bits is: {}", constants::BITS_NUM);
+    println!("Number of provers is: {}", constants::PROVER_NUM);
+    println!("Threshold is: {}", constants::THRESHOLD);
 
     // Create public parameters
     //生成公共参数
@@ -50,7 +53,7 @@ fn main(){
     }
     println!("Time elapsed in creating commitments is: {:?}", start_of_com.elapsed());
 
-    let start_of_OR = Instant::now();
+    let start_of_or = Instant::now();
     for i in 0..constants::SHARE_LEN {
         for j in 0..constants::BITS_NUM {
             if j<constants::BITS_NUM/2 {
@@ -63,7 +66,7 @@ fn main(){
             }
         }
     }
-    println!("Time elapsed in creating OR proofs is: {:?}", start_of_OR.elapsed());
+    println!("Time elapsed in creating OR proofs is: {:?}", start_of_or.elapsed());
 
     let start_of_verify = Instant::now();
     for i in 0..constants::SHARE_LEN {
@@ -72,7 +75,7 @@ fn main(){
             assert!(res);
             }
     }
-    println!("Time elapsed in verifying OR proofs is: {:?}", start_of_verify.elapsed()*3);//multiply by 3 because there are 3 provers
+    println!("Time elapsed in verifying OR proofs(all provers) is: {:?}", start_of_verify.elapsed()*constants::PROVER_NUM as u32);//multiply by prover num to simulate the time for verifing all provers
     
 
     let start_of_agg_com = Instant::now();
@@ -87,7 +90,7 @@ fn main(){
             }
         }
     }
-    println!("Time elapsed in aggregating commitments is: {:?}", start_of_agg_com.elapsed()*3);
+    println!("Time elapsed in aggregating commitments is: {:?}", start_of_agg_com.elapsed()*constants::PROVER_NUM as u32);
 
     let start_of_agg_bits = Instant::now();
     let mut bit = scalar_zero();
@@ -101,7 +104,6 @@ fn main(){
                     let xor=scalar_one()-s_blinding[i][j];
                     blind+=xor;
                 } else {
-                
                     bit+=bit_vector[i][j];
                     blind+=s_blinding[i][j];
 
