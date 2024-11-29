@@ -7,6 +7,7 @@ use rand::Rng; // Import the Rng trait
 use rand::thread_rng;
 use crate::commitment::{Commit,CommitBase};
 
+#[derive(Clone)]
 
 pub struct ReplicaSecret {
     s: Scalar,
@@ -62,6 +63,19 @@ impl ReplicaSecret{
             splits,
             blindings,
             r_sum: blindings_sum,
+        }
+    }
+
+    pub fn new_zero()->Self{
+        let splits: [Scalar; SPLIT_LEN] = [scalar_zero(); SPLIT_LEN];
+        let blindings: [Scalar; SPLIT_LEN] = [scalar_zero(); SPLIT_LEN];
+        let r_sum = scalar_zero();
+
+        Self {
+            s: scalar_zero(),
+            splits,
+            blindings,
+            r_sum,
         }
     }
 

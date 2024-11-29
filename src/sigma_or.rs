@@ -3,6 +3,7 @@
 // 2. Prover和Verifier执行验证verify_or_proof
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
 // use num_bigint::BigUint;
@@ -22,6 +23,21 @@ pub struct  ProofStruct{
     pub v1: Scalar, 
     pub d0: RistrettoPoint,
     pub d1: RistrettoPoint,
+}
+
+impl ProofStruct{
+    pub fn new()->Self{
+        ProofStruct{
+            e0: scalar_zero(),
+            e1: scalar_zero(),
+            e: scalar_zero(),
+            v0: scalar_zero(),
+            v1: scalar_zero(),
+            d0: RISTRETTO_BASEPOINT_POINT,
+            d1: RISTRETTO_BASEPOINT_POINT,
+        }
+    }
+    
 }
 
 // //这个可以改成util里的hashtoScalar
