@@ -20,15 +20,7 @@ fn main() {
     println!("Number of provers is: {}", constants::PROVER_NUM);
     println!("Threshold is: {}", constants::THRESHOLD);
 
-    let mut pks = Vec::new();
-    let mut sig_keys = Vec::new();
-    for _ in 0..constants::PROVER_NUM {
-        let (sk, pk) = sign::gen_keys();
-        pks.push(pk);
-        sig_keys.push(sk);
-    }
-
-
+{
     let mut rng = rand::thread_rng();
     let mut s_blinding = Vec::new();
     let mut bit_vector = vec![vec![scalar_zero(); constants::BITS_NUM]; constants::SHARE_LEN];
@@ -68,8 +60,8 @@ fn main() {
         
     }
     println!("Time elapsed in aggregating bits is: {:?}", start_of_agg_bits.elapsed());
-
-
+}
+{
 let mut sharesvec = Vec::new();
 
     for _ in 0..NUM_CLIENTS{
@@ -91,6 +83,7 @@ let mut sharesvec = Vec::new();
         sum=sum+sharesvec[i][0].clone();
     }
     println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed());
+}
 
     
 }
