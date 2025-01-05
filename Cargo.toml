@@ -27,3 +27,10 @@ rayon = "1.7"
 [profile.release]
 opt-level = 2
 lto = true
+
+[features]
+default = ["m5_t2"]
+m5_t2= []
+m5_t4 = []
+m3_t2 = []
+m3_t1 = []
