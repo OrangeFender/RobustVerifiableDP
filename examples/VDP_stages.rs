@@ -53,28 +53,6 @@ fn main() {
         });
     });
 
-    let mut coms_v_k: Vec<Vec<RistrettoPoint>> = Vec::new();
-    coms_v_k.par_extend((0..constants::SHARE_LEN).into_par_iter().map(|i| {
-        (0..constants::BITS_NUM).into_par_iter().map(|j| {
-            pp.get_commit_base().commit(bit_vector[i][j], s_blinding[i][j])
-        }).collect()
-    }));
-    
-
-    
-    let start_of_agg_com = Instant::now();
-    let mut com = RistrettoPoint::identity();
-    for i in 0..constants::SHARE_LEN {
-    for j in 0..constants::BITS_NUM {
-        if rand::random() {
-            let xor= pp.get_g()+pp.get_h()-coms_v_k[i][j];
-                    com+=xor;
-            } else {
-                com+=coms_v_k[i][j];
-            }
-        }
-    }
-    println!("Time elapsed in aggregating commitments is: {:?}", start_of_agg_com.elapsed()*constants::PROVER_NUM as u32);
 
     let start_of_agg_bits = Instant::now();
     let mut bit = scalar_zero();
@@ -151,14 +129,6 @@ sharesvec
         }
     });
 
-    
-    let start_agg_coms = Instant::now();
-    let mut coms_sum=ReplicaCommitment::new_zero();
-    for i in 0..NUM_CLIENTS{
-        let coms=comsvec[i].clone();
-        coms_sum=coms_sum+coms;
-    }
-    println!("Time elapsed in aggregating commitments is: {:?}", start_agg_coms.elapsed());
 
     let start_agg_shares = Instant::now();
     let mut sum=sharesvec[0][0].clone();
