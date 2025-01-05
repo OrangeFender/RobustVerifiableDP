@@ -1,18 +1,15 @@
 
 extern crate robust_verifiable_dp as dp;
 
-use dp::public_parameters::PublicParameters;
 use dp::constants;
 use dp::sign;
-use dp::replicated::{ReplicaSecret, ReplicaCommitment};
+use dp::replicated::ReplicaSecret;
 use std::time::Instant;
 use dp::util::{random_scalars, scalar_one, scalar_zero};
-use curve25519_dalek::{RistrettoPoint, Scalar};
-use dp::commitment::Commit;
-use curve25519_dalek::traits::Identity;
+use curve25519_dalek::Scalar;
 
 
-const NUM_CLIENTS: usize = 100;
+const NUM_CLIENTS: usize = 1000000;
 const BAD_PROVERS: usize = 0;
 
 fn main() {
@@ -31,9 +28,6 @@ fn main() {
         sig_keys.push(sk);
     }
 
-// Create public parameters
-    //生成公共参数
-    let pp = PublicParameters::new( b"seed");
 
     let mut rng = rand::thread_rng();
     let mut s_blinding = Vec::new();
@@ -76,58 +70,18 @@ fn main() {
     println!("Time elapsed in aggregating bits is: {:?}", start_of_agg_bits.elapsed());
 
 
+let mut sharesvec = Vec::new();
 
-
-
-let RSS = Instant::now();
-
-// 切分数据，按线程数进行分块
-let thread_count = rayon::current_num_threads();
-let chunk_size = (NUM_CLIENTS + thread_count - 1) / thread_count; // 确保分块覆盖所有数据
-
-let mut sharesvec = vec![Vec::new(); NUM_CLIENTS];
-let mut comsvec = vec![ReplicaCommitment::new_zero(); NUM_CLIENTS];
-let mut xvec = vec![false; NUM_CLIENTS];
-let mut secretvec = vec![ReplicaSecret::new_zero(); NUM_CLIENTS];
-
-// 使用 `par_iter_mut` 并行处理每一块
-sharesvec
-    .chunks_mut(chunk_size)
-    .zip(comsvec.chunks_mut(chunk_size))
-    .zip(xvec.chunks_mut(chunk_size))
-    .zip(secretvec.chunks_mut(chunk_size))
-    .enumerate()
-    .for_each(|(chunk_idx, (((shares_chunk, coms_chunk), x_chunk), secrets_chunk))| {
-        for (i, (((shares, coms), x), secret)) in shares_chunk
-            .iter_mut()
-            .zip(coms_chunk)
-            .zip(x_chunk)
-            .zip(secrets_chunk)
-            .enumerate()
-        {
-            let global_idx = chunk_idx * chunk_size + i; // 计算全局索引
-            if global_idx >= NUM_CLIENTS {
-                break;
-            }
-
-            let rand_x: bool = rand::random();
-            *x = rand_x;
-
-            let x_scalar = Scalar::from(rand_x as u64);
-            let replica_secret = ReplicaSecret::new(x_scalar.clone());
-            let replica_commitment =
-                ReplicaCommitment::new(replica_secret.commit(pp.get_commit_base().clone()));
-
-            *secret = replica_secret;
-            *coms = replica_commitment;
-
-            let mut shares_ = Vec::new();
-            for i in 0..constants::PROVER_NUM {
-                shares_.push(secret.get_share(i));
-            }
-            *shares = shares_;
+    for _ in 0..NUM_CLIENTS{
+        let x: bool = rand::random();
+        let x_scalar = Scalar::from(x as u64);
+        let secret=ReplicaSecret::new(x_scalar.clone());
+        let mut shares = Vec::new();
+        for i in 0..constants::PROVER_NUM{
+            shares.push(secret.get_share(i));
         }
-    });
+        sharesvec.push(shares);
+    }
 
 
     let start_agg_shares = Instant::now();
