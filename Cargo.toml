@@ -24,9 +24,12 @@ serde = {version = "1.0", features = ["derive"]}
 bcs = "0.1.6"
 threadpool = "1.8.1"
 rayon = "1.7"
+aes = "0.8"
+
 [profile.release]
 opt-level = 2
 lto = true
+
 
 [features]
 default = ["m5_t2"]
