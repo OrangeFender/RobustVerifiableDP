@@ -166,6 +166,37 @@ impl ReplicaShare{
             blindings: blindings_with_noise,
         }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        let ind64 = self.ind as u64;
+        bytes.extend_from_slice(&ind64.to_be_bytes());
+        for i in 0..SHARE_LEN {
+            bytes.extend_from_slice(&self.share[i].to_bytes());
+        }
+        for i in 0..SHARE_LEN {
+            bytes.extend_from_slice(&self.blindings[i].to_bytes());
+        }
+        bytes
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let mut ind_bytes = [0u8; 8];
+        ind_bytes.copy_from_slice(&bytes[0..8]);
+        let ind = u64::from_be_bytes(ind_bytes) as usize;
+        let mut share = [scalar_zero(); SHARE_LEN];
+        let mut blindings = [scalar_zero(); SHARE_LEN];
+        for i in 0..SHARE_LEN {
+            share[i] = Scalar::from_canonical_bytes(bytes[8 + i * 32..8 + (i + 1) * 32].try_into().unwrap()).unwrap();
+            blindings[i] = Scalar::from_canonical_bytes(bytes[8 + SHARE_LEN * 32 + i * 32..8 + SHARE_LEN * 32 + (i + 1) * 32].try_into().unwrap()).unwrap();
+        }
+        Self {
+            ind,
+            share,
+            blindings,
+        }
+    }
+
 }
 
 impl Default for ReplicaShare {
@@ -291,7 +322,7 @@ mod tests{
     use crate::constants;
     use crate::util::scalar_zero;
 
-    use super::{recon_shares, ReplicaSecret};
+    use super::{recon_shares, ReplicaSecret, ReplicaShare};
 
     #[test]
     fn test_recon(){
@@ -312,5 +343,20 @@ mod tests{
         assert_eq!(res.unwrap(),Scalar::from(1 as u64))
     }
 
+
+
+    #[test]
+    fn test_replica_share_to_bytes() {
+        let secret = ReplicaSecret::new(Scalar::from(1 as u64));
+        let share = secret.get_share(1);
+        let bytes: [u8; 8 + 2 * constants::SHARE_LEN * 32] = share.to_bytes().try_into().expect("Invalid length of bytes");
+        let deserialized_share = ReplicaShare::from_bytes(&bytes);
+        assert_eq!(share.ind, deserialized_share.ind);
+        assert_eq!(share.share, deserialized_share.share);
+        assert_eq!(share.blindings, deserialized_share.blindings);
+    }
+
+     
+    
     
 }
