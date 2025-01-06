@@ -62,25 +62,22 @@ fn main() {
     println!("Time elapsed in aggregating bits is: {:?}", start_of_agg_bits.elapsed());
 }
 {
-let mut sharesvec = Vec::new();
+let mut shares = Vec::new();
 
     for _ in 0..NUM_CLIENTS{
         let x: bool = rand::random();
         let x_scalar = Scalar::from(x as u64);
         let secret=ReplicaSecret::new(x_scalar.clone());
-        let mut shares = Vec::new();
-        for i in 0..constants::PROVER_NUM{
-            shares.push(secret.get_share(i));
-        }
-        sharesvec.push(shares);
+        shares.push(secret.get_share(0));
+        
     }
 
 
     let start_agg_shares = Instant::now();
-    let mut sum=sharesvec[0][0].clone();
+    let mut sum=shares[0].clone();
     for i in 1..NUM_CLIENTS
     {
-        sum=sum+sharesvec[i][0].clone();
+        sum=sum+shares[i].clone();
     }
     println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed());
 }
