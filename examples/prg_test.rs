@@ -16,5 +16,5 @@ fn main(){
     let bitslen = constants::BITS_NUM*constants::SHARE_LEN;
     let result = prg(&seed, bitslen);
     assert_eq!(result.len(), bitslen / 8);
-    println!("Time elapsed in prg mp is: {:?}", start.elapsed());
+    println!("Time elapsed in prg is: {:?}", start.elapsed());
 }
