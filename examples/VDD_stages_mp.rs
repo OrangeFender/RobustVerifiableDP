@@ -6,6 +6,7 @@ use dp::constants;
 use dp::sigma_or::ProofStruct;
 use dp::sign;
 use dp::replicated::{ReplicaCommitment, ReplicaSecret, ReplicaShare};
+use rayon::ThreadPoolBuilder;
 use std::time::Instant;
 use dp::sigma_or::{create_proof_1, create_proof_0};
 use curve25519_dalek::scalar::Scalar;
@@ -15,6 +16,8 @@ const NUM_CLIENTS: usize = 1000000;
 const BAD_PROVERS: usize = 0;
 
 fn main() {
+
+
     assert!(BAD_PROVERS < constants::PROVER_NUM - constants::THRESHOLD);
 
     println!("Number of clients is: {}", NUM_CLIENTS);
@@ -179,23 +182,28 @@ fn main() {
 
     println!("Time elapsed in aggregating commitments is: {:?}", start_agg_coms.elapsed());
 
-    for _ in 0..5{let start_agg_coms = Instant::now();
-    let _coms_sum: ReplicaCommitment = comsvec
-        .par_iter()
-        .cloned()
-        .reduce(|| ReplicaCommitment::new_zero(), |a, b| a + b);
+    let pool = ThreadPoolBuilder::new().num_threads(70).build().unwrap();
 
-    println!("Time elapsed in aggregating commitments is: {:?}", start_agg_coms.elapsed());
+    for _ in 0..5 {
+        let start_agg_coms = Instant::now();
+        pool.install(|| {
+            let _coms_sum: ReplicaCommitment = comsvec
+                .par_iter()
+                .cloned()
+                .reduce(|| ReplicaCommitment::new_zero(), |a, b| a + b);
+        });
+        println!("Time elapsed in aggregating commitments is: {:?}", start_agg_coms.elapsed());
     }
-    
-    for _ in 0..5{
-    let start_agg_shares = Instant::now();
-    let sum  = sharesvec
-        .par_iter()
-        .map(|shares| shares[0].clone())
-        .reduce(|| ReplicaShare::default(), |a, b| a + b);
 
-    println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed());
+    for _ in 0..5 {
+        let start_agg_shares = Instant::now();
+        pool.install(|| {
+            let sum: ReplicaShare = sharesvec
+                .par_iter()
+                .map(|shares| shares[0].clone())
+                .reduce(|| ReplicaShare::default(), |a, b| a + b);
+        });
+        println!("Time elapsed in aggregating shares is: {:?}", start_agg_shares.elapsed());
     }
     
     
