@@ -50,11 +50,14 @@ pub fn prg_mp(seed:&[u8;16],bitslen:usize)->Vec<u8>{
     let byteslen = (bitslen+7)/8;
     let mut tempvec: Vec<[u8; 16]> = vec![seed.clone()];
     while tempvec.len() < blocklen {
+        let chunk_size = if tempvec.len() > 1000 { tempvec.len() / 4 } else { tempvec.len() };
         let newtempvec: Vec<[u8; 16]> = tempvec
-            .par_iter()
-            .flat_map(|block| {
-                let (block0, block1) = expand(block);
-                vec![block0, block1]
+            .par_chunks(chunk_size)
+            .flat_map(|chunk| {
+                chunk.iter().flat_map(|block| {
+                    let (block0, block1) = expand(block);
+                    vec![block0, block1]
+                }).collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
             .into_iter()

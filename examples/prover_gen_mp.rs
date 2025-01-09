@@ -15,6 +15,8 @@ use curve25519_dalek::{RistrettoPoint, Scalar};
 
 fn main(){
 
+    println!("Number of threads is: {}", rayon::current_num_threads());
+
     println!("Number of bits is: {}", constants::BITS_NUM);
     println!("Number of provers is: {}", constants::PROVER_NUM);
     println!("Threshold is: {}", constants::THRESHOLD);
@@ -74,6 +76,67 @@ fn main(){
     
 
     let start_of_agg_com = Instant::now();
+    let num_threads = rayon::current_num_threads();
+    let chunk_size = (constants::SHARE_LEN * constants::BITS_NUM + num_threads - 1) / num_threads;
+
+    let com: RistrettoPoint = (0..constants::SHARE_LEN * constants::BITS_NUM)
+        .collect::<Vec<_>>()
+        .par_chunks(chunk_size)
+        .map(|chunk| {
+            let mut local_com = RistrettoPoint::identity();
+            for &index in chunk {
+                let i = index / constants::BITS_NUM;
+                let j = index % constants::BITS_NUM;
+                if rand::random() {
+                    let xor = pp.get_g() + pp.get_h() - coms_v_k[i][j];
+                    local_com += xor;
+                } else {
+                    local_com += coms_v_k[i][j];
+                }
+            }
+            local_com
+        })
+        .reduce(|| RistrettoPoint::identity(), |acc, local_com| acc + local_com);
+
+    println!("Time elapsed in aggregating commitments is: {:?}", start_of_agg_com.elapsed() * constants::PROVER_NUM as u32);
+
+    let start_of_agg_bits = Instant::now();
+    let num_threads = rayon::current_num_threads();
+    let chunk_size = (constants::SHARE_LEN * constants::BITS_NUM + num_threads - 1) / num_threads;
+
+    let (bit, blind): (Scalar, Scalar) = (0..constants::SHARE_LEN * constants::BITS_NUM)
+        .collect::<Vec<_>>()
+        .par_chunks(chunk_size)
+        .map(|chunk| {
+            let mut local_bit = scalar_zero();
+            let mut local_blind = scalar_zero();
+            
+            for &index in chunk {
+                let i = index / constants::BITS_NUM;
+                let j = index % constants::BITS_NUM;
+                if rand::random() {
+                    let xor_bit = scalar_one() - bit_vector[i][j];
+                    local_bit += xor_bit;
+                    let xor_blind = scalar_one() - s_blinding[i][j];
+                    local_blind += xor_blind;
+                } else {
+                    local_bit += bit_vector[i][j];
+                    local_blind += s_blinding[i][j];
+                }
+            }
+            
+            (local_bit, local_blind)
+        })
+        .reduce(
+            || (scalar_zero(), scalar_zero()),
+            |(acc_bit, acc_blind), (local_bit, local_blind)| (acc_bit + local_bit, acc_blind + local_blind)
+        );
+
+    println!("Time elapsed in aggregating bits is: {:?}", start_of_agg_bits.elapsed());
+
+    
+    
+    let start_of_agg_com = Instant::now();
     let mut com = RistrettoPoint::identity();
     for i in 0..constants::SHARE_LEN {
     for j in 0..constants::BITS_NUM {
@@ -85,7 +148,7 @@ fn main(){
             }
         }
     }
-    println!("Time elapsed in aggregating commitments is: {:?}", start_of_agg_com.elapsed()*constants::PROVER_NUM as u32);
+    println!("Time elapsed in aggregating commitments sp is: {:?}", start_of_agg_com.elapsed()*constants::PROVER_NUM as u32);
 
     let start_of_agg_bits = Instant::now();
     let mut bit = scalar_zero();
@@ -106,7 +169,7 @@ fn main(){
         }
         
     }
-    println!("Time elapsed in aggregating bits is: {:?}", start_of_agg_bits.elapsed());
+    println!("Time elapsed in aggregating bits sp is: {:?}", start_of_agg_bits.elapsed());
 
     
 

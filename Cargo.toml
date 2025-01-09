@@ -32,7 +32,7 @@ lto = true
 
 
 [features]
-default = ["m5_t2"]
+default = ["m3_t2"]
 m5_t2= []
 m5_t4 = []
 m3_t2 = []
