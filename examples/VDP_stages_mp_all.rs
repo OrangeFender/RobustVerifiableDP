@@ -118,9 +118,9 @@ fn main() {
 
     let start_of_agg_com = Instant::now();
     let com: RistrettoPoint = pool.install(|| {
-        (0..constants::SHARE_LEN).into_par_iter().map(|i| {
+        (0..constants::BITS_NUM).into_par_iter().map(|i| {
             let mut com = RistrettoPoint::identity();
-            for j in 0..constants::BITS_NUM {
+            for j in 0..constants::SHARE_LEN {
                 if rand::random() {
                     let xor = pp.get_g() + pp.get_h() - coms_v_k[i][j];
                     com += xor;

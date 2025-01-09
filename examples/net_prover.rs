@@ -14,7 +14,7 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                let bytes = [7u8; 32*256];
+                let bytes = vec![7u8; 32*2*262144];
 
                 stream.write_all(&bytes).unwrap();
             }

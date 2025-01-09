@@ -25,7 +25,7 @@ fn main(){
         
         let x0 = random_scalar(&mut csprng);
         let r0 = random_scalar(&mut csprng);
-        let _ = pp.get_commit_base().commit(x0, r0);
+        let c = pp.get_commit_base().commit(x0, r0);
 
         let x1 = random_scalar(&mut csprng);
         let r1 = random_scalar(&mut csprng);

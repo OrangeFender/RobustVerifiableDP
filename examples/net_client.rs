@@ -18,7 +18,7 @@ fn main() {
     let server_ip = &args[1];
     let start = Instant::now();
     let mut stream = TcpStream::connect(server_ip).unwrap();
-    let mut buffer = [0; 32*256]; // Assuming the share is 32 bytes long
+    let mut buffer = vec![0; 32*262144]; // Assuming the share is 32 bytes long
     stream.read_exact(&mut buffer).unwrap();
     println!("Received share");
     println!("time elapsed is: {:?}", start.elapsed());
