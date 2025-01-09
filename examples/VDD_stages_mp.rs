@@ -35,58 +35,61 @@ fn main() {
 
     use rayon::prelude::*; // 引入 Rayon 的并行功能
 
-let RSS = Instant::now();
+    let rss = Instant::now();
+    let pp_commit_base = pp.get_commit_base(); // 假设这个函数返回正确的基数
 
-// 切分数据，按线程数进行分块
-let thread_count = rayon::current_num_threads();
-let chunk_size = (NUM_CLIENTS + thread_count - 1) / thread_count; // 确保分块覆盖所有数据
+    // 使用线程数动态确定分块大小
+    let num_threads = rayon::current_num_threads();
+    let chunk_size = (NUM_CLIENTS + num_threads - 1) / num_threads;
+    let num_chunks = (NUM_CLIENTS + chunk_size - 1) / chunk_size;
 
-let mut sharesvec = vec![Vec::new(); NUM_CLIENTS];
-let mut comsvec = vec![ReplicaCommitment::new_zero(); NUM_CLIENTS];
-let mut xvec = vec![false; NUM_CLIENTS];
-let mut secretvec = vec![ReplicaSecret::new_zero(); NUM_CLIENTS];
+    let results: Vec<_> = (0..num_chunks)
+        .into_par_iter() // 使用 Rayon 的并行迭代器
+        .map(|chunk_idx| {
+            let start = chunk_idx * chunk_size;
+            let end = ((chunk_idx + 1) * chunk_size).min(NUM_CLIENTS);
 
-// 使用 `par_iter_mut` 并行处理每一块
-sharesvec
-    .chunks_mut(chunk_size)
-    .zip(comsvec.chunks_mut(chunk_size))
-    .zip(xvec.chunks_mut(chunk_size))
-    .zip(secretvec.chunks_mut(chunk_size))
-    .enumerate()
-    .for_each(|(chunk_idx, ((((shares_chunk, coms_chunk), x_chunk), secrets_chunk)))| {
-        for (i, (((shares, coms), x), secret)) in shares_chunk
-            .iter_mut()
-            .zip(coms_chunk)
-            .zip(x_chunk)
-            .zip(secrets_chunk)
-            .enumerate()
-        {
-            let global_idx = chunk_idx * chunk_size + i; // 计算全局索引
-            if global_idx >= NUM_CLIENTS {
-                break;
+            let mut xvec = Vec::new();
+            let mut comsvec = Vec::new();
+            let mut sharesvec = Vec::new();
+            let mut secretvec = Vec::new();
+
+            for _ in start..end {
+                let x: bool = rand::random();
+                xvec.push(x);
+                let x_scalar = Scalar::from(x as u64);
+                let secret = ReplicaSecret::new(x_scalar.clone());
+                let coms = ReplicaCommitment::new(secret.commit(pp_commit_base.clone()));
+                comsvec.push(coms);
+                let mut shares = Vec::new();
+                for i in 0..constants::PROVER_NUM {
+                    shares.push(secret.get_share(i));
+                }
+                sharesvec.push(shares);
+                secretvec.push(secret);
             }
 
-            let rand_x: bool = rand::random();
-            *x = rand_x;
+            (xvec, comsvec, sharesvec, secretvec)
+        })
+        .collect();
 
-            let x_scalar = Scalar::from(rand_x as u64);
-            let replica_secret = ReplicaSecret::new(x_scalar.clone());
-            let replica_commitment =
-                ReplicaCommitment::new(replica_secret.commit(pp.get_commit_base().clone()));
+    // 合并所有分块结果
+    let mut xvec = Vec::new();
+    let mut comsvec = Vec::new();
+    let mut sharesvec = Vec::new();
+    let mut secretvec = Vec::new();
 
-            *secret = replica_secret;
-            *coms = replica_commitment;
+    for (xv, comsv, sharesv, secretv) in results {
+        xvec.extend(xv);
+        comsvec.extend(comsv);
+        sharesvec.extend(sharesv);
+        secretvec.extend(secretv);
+    }
 
-            let mut shares_ = Vec::new();
-            for i in 0..constants::PROVER_NUM {
-                shares_.push(secret.get_share(i));
-            }
-            *shares = shares_;
-        }
-    });
-
-println!("Time elapsed in creating shares and commitments is: {:?}", RSS.elapsed());
-
+    println!(
+        "Time elapsed in creating shares and commitments is: {:?}",
+        rss.elapsed()
+    );
     
 
     
