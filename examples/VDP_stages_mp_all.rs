@@ -99,13 +99,20 @@ fn main() {
 
     let mut shares = Vec::new();
     let mut client_coms = Vec::new();
-    for _ in 0..NUM_CLIENTS {
-        let x: bool = rand::random();
-        let x_scalar = Scalar::from(x as u64);
-        let secret = ReplicaSecret::new(x_scalar.clone());
-        shares.push(secret.get_share(0));
-        client_coms.push(ReplicaCommitment::new(secret.commit(pp.get_commit_base().clone())));
-    }
+    let (new_shares, new_client_coms): (Vec<ReplicaShare>, Vec<ReplicaCommitment>) = pool.install(|| {
+        (0..NUM_CLIENTS).into_par_iter().map(|_| {
+            let x: bool = rand::random();
+            let x_scalar = Scalar::from(x as u64);
+            let secret = ReplicaSecret::new(x_scalar.clone());
+            (
+                secret.get_share(0),
+                ReplicaCommitment::new(secret.commit(pp.get_commit_base().clone()))
+            )
+        }).unzip()
+    });
+
+    shares = new_shares;
+    client_coms = new_client_coms;
 
     let start_agg_shares = Instant::now();
     let sum: ReplicaShare = pool.install(|| {
