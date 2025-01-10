@@ -75,7 +75,7 @@ fn main(){
     println!("Time elapsed in verifying OR proofs(all provers) is: {:?}", start_of_verify.elapsed()*constants::PROVER_NUM as u32);//multiply by prover num to simulate the time for verifing all provers
     
 
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(55).build().unwrap();
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(70).build().unwrap();
     let num_threads = pool.current_num_threads();
     let chunk_size = (constants::SHARE_LEN * constants::BITS_NUM + num_threads - 1) / num_threads;
     for _ in 0..5{

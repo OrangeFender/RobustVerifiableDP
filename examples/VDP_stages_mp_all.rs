@@ -13,7 +13,7 @@ use curve25519_dalek::RistrettoPoint;
 use rayon::prelude::*;
 use rayon::ThreadPoolBuilder;
 
-const NUM_CLIENTS: usize = 1000000;
+const NUM_CLIENTS: usize = 10000;
 const BAD_PROVERS: usize = 0;
 
 fn main() {
@@ -99,20 +99,19 @@ fn main() {
 
     let mut shares = Vec::new();
     let mut client_coms = Vec::new();
-    let (new_shares, new_client_coms): (Vec<ReplicaShare>, Vec<ReplicaCommitment>) = pool.install(|| {
-        (0..NUM_CLIENTS).into_par_iter().map(|_| {
-            let x: bool = rand::random();
-            let x_scalar = Scalar::from(x as u64);
-            let secret = ReplicaSecret::new(x_scalar.clone());
-            (
-                secret.get_share(0),
-                ReplicaCommitment::new(secret.commit(pp.get_commit_base().clone()))
-            )
-        }).unzip()
-    });
+    shares.par_extend((0..NUM_CLIENTS).into_par_iter().map(|_| {
+        let x: bool = rand::random();
+        let x_scalar = Scalar::from(x as u64);
+        let secret = ReplicaSecret::new(x_scalar.clone());
+        secret.get_share(0)
+    }));
 
-    shares = new_shares;
-    client_coms = new_client_coms;
+    client_coms.par_extend((0..NUM_CLIENTS).into_par_iter().map(|_| {
+        let x: bool = rand::random();
+        let x_scalar = Scalar::from(x as u64);
+        let secret = ReplicaSecret::new(x_scalar.clone());
+        ReplicaCommitment::new(secret.commit(pp.get_commit_base().clone()))
+    }));
 
     let start_agg_shares = Instant::now();
     let sum: ReplicaShare = pool.install(|| {
