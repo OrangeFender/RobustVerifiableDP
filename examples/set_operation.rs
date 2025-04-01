@@ -132,14 +132,14 @@ fn test_vector(length:usize){
     while set.len() < length {
         set.insert(rand::random::<u64>());
     }
-    let mut unique_array: Vec<u64> = set.into_iter().collect();
+    let unique_array: Vec<u64> = set.into_iter().collect();
     println!("Generated array of length: {}", unique_array.len());
     
-    let RandomNumber:u64= rand::random::<u64>();
+    let random_number:u64= rand::random::<u64>();
     let start = std::time::Instant::now();
     let mut counter: i32 = 0;
     for number in unique_array.iter() {
-        if number == &RandomNumber {
+        if number == &random_number {
             counter += 1;
         }
     }
