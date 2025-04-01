@@ -155,10 +155,10 @@ fn main(){
     test_all_in(1_000_000);
     test_all_not_in(1_000_000);
 
-    println!("--------test of btree set---------");
+    // println!("--------test of btree set---------");
 
-    test_all_in_bt(1_000_000);
-    test_all_not_in_bt(1_000_000);
+    // test_all_in_bt(1_000_000);
+    // test_all_not_in_bt(1_000_000);
 
     println!("--------test of vector---------");
     test_vector(1_000_000);
