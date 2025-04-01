@@ -127,6 +127,26 @@ fn test_all_not_in_bt(length:usize){
     println!("Count of numbers in both sets: {}", counter);
 }
 
+fn test_vector(length:usize){
+    let mut set = FxHashSet::default();
+    while set.len() < length {
+        set.insert(rand::random::<u64>());
+    }
+    let mut unique_array: Vec<u64> = set.into_iter().collect();
+    println!("Generated array of length: {}", unique_array.len());
+    
+    let RandomNumber:u64= rand::random::<u64>();
+    let start = std::time::Instant::now();
+    let mut counter: i32 = 0;
+    for number in unique_array.iter() {
+        if number == &RandomNumber {
+            counter += 1;
+        }
+    }
+    println!("Time taken to check number: {:?}", start.elapsed());
+    println!("Count of number in vector: {}", counter);
+}
+
 
 fn main(){
     for _i in 0..3{
@@ -140,5 +160,7 @@ fn main(){
     test_all_in_bt(1_000_000);
     test_all_not_in_bt(1_000_000);
 
+    println!("--------test of vector---------");
+    test_vector(1_000_000);
 }
 }
