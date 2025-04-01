@@ -25,6 +25,7 @@ bcs = "0.1.6"
 threadpool = "1.8.1"
 rayon = "1.7"
 aes = "0.8"
+rustc-hash = "1.1.0"
 
 [profile.release]
 opt-level = 2

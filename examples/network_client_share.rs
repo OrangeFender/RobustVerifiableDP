@@ -2,6 +2,10 @@
 extern crate robust_verifiable_dp as dp;
 
 use std::net::{TcpStream, TcpListener};
+use rand::Rng;
+use curve25519_dalek::scalar::Scalar;
+use dp::replicated::ReplicaShare;
+use dp::constants;
 use std::time::Instant;
 use std::env;
 
@@ -18,8 +22,9 @@ fn main() {
     let server_ip = &args[1];
     let start = Instant::now();
     let mut stream = TcpStream::connect(server_ip).unwrap();
-    let mut buffer = vec![0; 32*2*262144]; // Assuming the share is 32 bytes long
+    let mut buffer = [0; 8 + 2 * constants::SHARE_LEN * 32]; // the share is 32 bytes long
     stream.read_exact(&mut buffer).unwrap();
+    let deserialized_share = ReplicaShare::from_bytes(&buffer);
     println!("Received share");
     println!("time elapsed is: {:?}", start.elapsed());
 }
